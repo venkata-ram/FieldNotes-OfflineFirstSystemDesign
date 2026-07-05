@@ -1,13 +1,13 @@
 package com.venkatsvision.offlinefirstsystemdesign.data.remote
 
 import kotlinx.coroutines.delay
+import java.util.UUID
 
 class InMemoryFakeNotesApi(
     private val delayMillis: Long = 300,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : FakeNotesApi {
     private val notes = linkedMapOf<String, RemoteNote>()
-    private var nextRemoteId = 1
     var failNextRequest: Boolean = false
 
     override suspend fun getNotes(): List<RemoteNote> {
@@ -22,7 +22,7 @@ class InMemoryFakeNotesApi(
     ): RemoteNote {
         simulateNetwork()
         val note = RemoteNote(
-            remoteId = "remote-${nextRemoteId++}",
+            remoteId = "remote-${UUID.randomUUID()}",
             title = title,
             body = body,
             updatedAtMillis = maxOf(updatedAtMillis, clock()),

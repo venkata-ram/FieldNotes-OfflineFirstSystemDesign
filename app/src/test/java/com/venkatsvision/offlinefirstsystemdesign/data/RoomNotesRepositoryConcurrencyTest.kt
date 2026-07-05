@@ -44,12 +44,52 @@ class RoomNotesRepositoryConcurrencyTest {
         assertEquals("remote-1", noteDao.notes.value.single().remoteId)
         assertEquals(PendingOperation.None.name, noteDao.notes.value.single().pendingOperation)
     }
+
+    @Test
+    fun syncNow_whenFakeApiResetsRemoteId_doesNotCrashAndKeepsPendingCreate() = runTest {
+        val noteDao = InMemoryNoteDao(
+            listOf(
+                NoteEntity(
+                    localId = 1L,
+                    remoteId = "remote-1",
+                    title = "Already synced",
+                    body = "Persisted from a previous app process",
+                    syncStatus = SyncStatus.Synced.name,
+                    pendingOperation = PendingOperation.None.name,
+                    updatedAtMillis = 1000L,
+                ),
+                NoteEntity(
+                    localId = 2L,
+                    title = "Pending after restart",
+                    body = "Fake API forgot old remote IDs",
+                    syncStatus = SyncStatus.PendingCreate.name,
+                    pendingOperation = PendingOperation.Create.name,
+                    updatedAtMillis = 2000L,
+                ),
+            ),
+        )
+        val repository = RoomNotesRepository(
+            noteDao = noteDao,
+            notesApi = FixedCreateIdFakeNotesApi(remoteId = "remote-1"),
+            clock = { 3000L },
+        )
+
+        val result = repository.syncNow()
+
+        val pending = noteDao.notes.value.single { it.localId == 2L }
+        assertEquals(0, result.pushed)
+        assertEquals(1, result.failed)
+        assertEquals(SyncStatus.Failed.name, pending.syncStatus)
+        assertEquals(PendingOperation.Create.name, pending.pendingOperation)
+    }
 }
 
 private class InMemoryNoteDao(
-    initialNote: NoteEntity,
+    initialNotes: List<NoteEntity>,
 ) : NoteDao {
-    val notes = MutableStateFlow(listOf(initialNote))
+    constructor(initialNote: NoteEntity) : this(listOf(initialNote))
+
+    val notes = MutableStateFlow(initialNotes)
 
     override fun observeNotes(): Flow<List<NoteEntity>> = notes
 
@@ -70,13 +110,26 @@ private class InMemoryNoteDao(
 
     override suspend fun insert(note: NoteEntity): Long {
         val nextId = (notes.value.maxOfOrNull { it.localId } ?: 0L) + 1L
-        notes.value = notes.value + note.copy(localId = nextId)
+        val inserted = note.copy(localId = nextId)
+        enforceUniqueRemoteId(inserted)
+        notes.value = notes.value + inserted
         return nextId
     }
 
     override suspend fun update(note: NoteEntity) {
+        enforceUniqueRemoteId(note)
         notes.value = notes.value.map { existing ->
             if (existing.localId == note.localId) note else existing
+        }
+    }
+
+    private fun enforceUniqueRemoteId(note: NoteEntity) {
+        val remoteId = note.remoteId ?: return
+        val duplicate = notes.value.any { existing ->
+            existing.localId != note.localId && existing.remoteId == remoteId
+        }
+        if (duplicate) {
+            error("UNIQUE constraint failed: notes.remoteId")
         }
     }
 }
@@ -120,4 +173,32 @@ private class CountingFakeNotesApi : FakeNotesApi {
     override suspend fun deleteNote(remoteId: String) {
         notes.remove(remoteId)
     }
+}
+
+private class FixedCreateIdFakeNotesApi(
+    private val remoteId: String,
+) : FakeNotesApi {
+    override suspend fun getNotes(): List<RemoteNote> = emptyList()
+
+    override suspend fun createNote(
+        title: String,
+        body: String,
+        updatedAtMillis: Long,
+    ): RemoteNote =
+        RemoteNote(
+            remoteId = remoteId,
+            title = title,
+            body = body,
+            updatedAtMillis = updatedAtMillis,
+        )
+
+    override suspend fun updateNote(
+        remoteId: String,
+        title: String,
+        body: String,
+        updatedAtMillis: Long,
+    ): RemoteNote =
+        RemoteNote(remoteId, title, body, updatedAtMillis)
+
+    override suspend fun deleteNote(remoteId: String) = Unit
 }

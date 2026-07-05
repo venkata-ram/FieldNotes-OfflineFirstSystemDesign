@@ -2,6 +2,8 @@ package com.venkatsvision.offlinefirstsystemdesign.data.remote
 
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 
@@ -17,8 +19,19 @@ class InMemoryFakeNotesApiTest {
         )
 
         val notes = api.getNotes()
-        assertEquals("remote-1", created.remoteId)
+        assertTrue(created.remoteId.startsWith("remote-"))
         assertEquals(listOf(created), notes)
+    }
+
+    @Test
+    fun createNote_afterApiRecreation_doesNotReusePreviousRemoteId() = runTest {
+        val firstApiInstance = InMemoryFakeNotesApi(delayMillis = 0)
+        val previous = firstApiInstance.createNote("Before restart", "Body", 1000L)
+        val secondApiInstance = InMemoryFakeNotesApi(delayMillis = 0)
+
+        val next = secondApiInstance.createNote("After restart", "Body", 1000L)
+
+        assertNotEquals(previous.remoteId, next.remoteId)
     }
 
     @Test

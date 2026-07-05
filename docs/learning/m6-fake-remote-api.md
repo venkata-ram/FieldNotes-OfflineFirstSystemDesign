@@ -13,6 +13,7 @@ This milestone creates a fake API that behaves enough like a remote service to t
 - Added `InMemoryFakeNotesApi`.
 - Added fake network delay support.
 - Added one-shot fake failure support.
+- Fake remote IDs use non-repeating UUID-backed values so they do not collide with persisted Room rows after app restart.
 - Added unit tests for create, update, list, and failure behavior.
 
 The UI still reads from Room. Full sync starts in M7.
@@ -99,6 +100,7 @@ M7 will connect Room and this fake API through manual sync.
 - Depend on an interface, not a concrete fake.
 - Keep remote DTOs separate from local entities.
 - Make failures easy to simulate.
+- Avoid resettable remote IDs when local data persists across process restarts.
 - Test fake behavior before using it in sync logic.
 - Avoid putting fake remote state in the UI layer.
 
@@ -146,4 +148,3 @@ Result:
 3. What backend guarantees does offline sync need?
 4. How would you version remote DTOs over time?
 5. How would you design contract tests between mobile and backend teams?
-
