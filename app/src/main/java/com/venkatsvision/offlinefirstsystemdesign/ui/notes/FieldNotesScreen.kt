@@ -17,11 +17,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -30,6 +33,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,6 +49,12 @@ import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import com.venkatsvision.offlinefirstsystemdesign.ui.theme.OfflineFirstSystemDesignTheme
 
+private enum class DemoScreen(val label: String, val title: String, val subtitle: String) {
+    Notes("Notes", "Field Notes", "Capture and inspect local state"),
+    Sync("Sync", "Sync Control", "Push, pull, conflict, retry"),
+    Learn("Learn", "Architecture", "Offline-first system design"),
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FieldNotesScreen(
@@ -50,6 +63,8 @@ fun FieldNotesScreen(
     onEvent: (NotesUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var selectedScreen by rememberSaveable { mutableStateOf(DemoScreen.Notes) }
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
@@ -59,18 +74,36 @@ fun FieldNotesScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Field Notes",
+                            text = selectedScreen.title,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Offline-first system design lab",
+                            text = selectedScreen.subtitle,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
             )
+        },
+        bottomBar = {
+            NavigationBar {
+                DemoScreen.entries.forEach { screen ->
+                    NavigationBarItem(
+                        selected = selectedScreen == screen,
+                        onClick = { selectedScreen = screen },
+                        icon = {
+                            Text(
+                                text = screen.label.take(1),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        },
+                        label = { Text(screen.label) },
+                    )
+                }
+            }
         },
     ) { innerPadding ->
         LazyColumn(
@@ -80,64 +113,117 @@ fun FieldNotesScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item {
-                OverviewPanel(
-                    notes = uiState.notes,
-                    isSyncing = uiState.isSyncing,
+            when (selectedScreen) {
+                DemoScreen.Notes -> notesScreenContent(
+                    uiState = uiState,
+                    onEvent = onEvent,
+                )
+                DemoScreen.Sync -> syncScreenContent(
+                    uiState = uiState,
                     isOnline = isOnline,
-                    lastSyncMessage = uiState.lastSyncMessage,
-                    onSync = { onEvent(NotesUiEvent.SyncNow(isOnline = isOnline)) },
+                    onEvent = onEvent,
                 )
-            }
-
-            item {
-                SectionTitle(
-                    title = "Capture",
-                    subtitle = if (uiState.isEditing) "Editing local state" else "Write first, sync later",
-                )
-                NoteEditor(
-                    isEditing = uiState.isEditing,
-                    title = uiState.editorTitle,
-                    body = uiState.editorBody,
-                    onTitleChange = { onEvent(NotesUiEvent.TitleChanged(it)) },
-                    onBodyChange = { onEvent(NotesUiEvent.BodyChanged(it)) },
-                    onSave = { onEvent(NotesUiEvent.SaveNote) },
-                    onClear = { onEvent(NotesUiEvent.ClearEditor) },
-                )
-            }
-
-            item {
-                SectionTitle(
-                    title = "Local source of truth",
-                    subtitle = "${uiState.notes.size} visible note(s)",
-                )
-            }
-
-            if (uiState.notes.isEmpty()) {
-                item {
-                    EmptyNotesState()
-                }
-            } else {
-                items(uiState.notes, key = { it.id }) { note ->
-                    NoteListItem(
-                        note = note,
-                        onClick = { onEvent(NotesUiEvent.EditNote(note.id)) },
-                        onDelete = { onEvent(NotesUiEvent.DeleteNote(note.id)) },
-                        onSimulateRemoteEdit = { onEvent(NotesUiEvent.SimulateRemoteEdit(note.id)) },
-                        onKeepLocal = { onEvent(NotesUiEvent.KeepLocalConflict(note.id)) },
-                        onUseRemote = { onEvent(NotesUiEvent.UseRemoteConflict(note.id)) },
-                    )
-                }
-            }
-
-            item {
-                SectionTitle(
-                    title = "Sync trace",
-                    subtitle = "Recent repository events",
-                )
-                SyncLogPanel(entries = uiState.syncLog)
+                DemoScreen.Learn -> learnScreenContent()
             }
         }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.notesScreenContent(
+    uiState: NotesUiState,
+    onEvent: (NotesUiEvent) -> Unit,
+) {
+    item {
+        SectionTitle(
+            title = "Capture",
+            subtitle = if (uiState.isEditing) "Editing local state" else "Write first, sync later",
+        )
+        NoteEditor(
+            isEditing = uiState.isEditing,
+            title = uiState.editorTitle,
+            body = uiState.editorBody,
+            onTitleChange = { onEvent(NotesUiEvent.TitleChanged(it)) },
+            onBodyChange = { onEvent(NotesUiEvent.BodyChanged(it)) },
+            onSave = { onEvent(NotesUiEvent.SaveNote) },
+            onClear = { onEvent(NotesUiEvent.ClearEditor) },
+        )
+    }
+
+    item {
+        SectionTitle(
+            title = "Local source of truth",
+            subtitle = "${uiState.notes.size} visible note(s)",
+        )
+    }
+
+    if (uiState.notes.isEmpty()) {
+        item {
+            EmptyNotesState()
+        }
+    } else {
+        items(uiState.notes, key = { it.id }) { note ->
+            NoteListItem(
+                note = note,
+                onClick = { onEvent(NotesUiEvent.EditNote(note.id)) },
+                onDelete = { onEvent(NotesUiEvent.DeleteNote(note.id)) },
+                onSimulateRemoteEdit = { onEvent(NotesUiEvent.SimulateRemoteEdit(note.id)) },
+                onKeepLocal = { onEvent(NotesUiEvent.KeepLocalConflict(note.id)) },
+                onUseRemote = { onEvent(NotesUiEvent.UseRemoteConflict(note.id)) },
+            )
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.syncScreenContent(
+    uiState: NotesUiState,
+    isOnline: Boolean,
+    onEvent: (NotesUiEvent) -> Unit,
+) {
+    item {
+        OverviewPanel(
+            notes = uiState.notes,
+            isSyncing = uiState.isSyncing,
+            isOnline = isOnline,
+            lastSyncMessage = uiState.lastSyncMessage,
+            onSync = { onEvent(NotesUiEvent.SyncNow(isOnline = isOnline)) },
+        )
+    }
+    item {
+        SyncStatsGrid(notes = uiState.notes)
+    }
+    item {
+        SectionTitle(
+            title = "Sync trace",
+            subtitle = "Recent repository events",
+        )
+        SyncLogPanel(entries = uiState.syncLog)
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.learnScreenContent() {
+    item {
+        LearningCard(
+            title = "1. UI reads local data",
+            body = "Compose observes NotesUiState. The state comes from Room through Flow, not directly from the network.",
+        )
+    }
+    item {
+        LearningCard(
+            title = "2. Writes are local first",
+            body = "Create, edit, and delete actions update Room immediately with pending operations.",
+        )
+    }
+    item {
+        LearningCard(
+            title = "3. Sync is a separate engine",
+            body = "Manual sync and WorkManager both call the repository sync loop. The UI stays local-first.",
+        )
+    }
+    item {
+        LearningCard(
+            title = "4. Conflicts are explicit",
+            body = "When local and remote versions diverge, the app marks a conflict instead of silently overwriting data.",
+        )
     }
 }
 
@@ -162,34 +248,20 @@ private fun OverviewPanel(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = "Offline-first control room",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = lastSyncMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Button(onClick = onSync, enabled = !isSyncing && isOnline) {
-                    Text(if (isSyncing) "Syncing" else "Sync now")
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Offline-first control room",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = lastSyncMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
 
             Row(
@@ -210,6 +282,31 @@ private fun OverviewPanel(
                     label = "$conflictCount conflict",
                     containerColor = if (conflictCount == 0) Color(0xFFE9EEF5) else Color(0xFFFFDAD6),
                     contentColor = if (conflictCount == 0) Color(0xFF36526F) else Color(0xFF8A1F11),
+                )
+            }
+
+            Button(
+                onClick = onSync,
+                enabled = !isSyncing && isOnline,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFFFFFF),
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    disabledContainerColor = Color(0xFF0F5A47),
+                    disabledContentColor = Color(0xFF9CCDBF),
+                ),
+            ) {
+                Text(
+                    text = when {
+                        isSyncing -> "Syncing changes..."
+                        !isOnline -> "Connect internet to sync"
+                        else -> "Sync pending changes"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }
@@ -251,6 +348,99 @@ private fun StatusPill(
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
         )
+    }
+}
+
+@Composable
+private fun SyncStatsGrid(notes: List<FieldNote>) {
+    val synced = notes.count { it.syncStatus == SyncStatus.Synced }
+    val pending = notes.count { it.pendingOperation != PendingOperation.None }
+    val conflicts = notes.count { it.syncStatus == SyncStatus.Conflict }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionTitle(
+            title = "Sync dashboard",
+            subtitle = "Current local database state",
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricCard(
+                label = "Synced",
+                value = synced.toString(),
+                color = Color(0xFFE0F5E9),
+                modifier = Modifier.weight(1f),
+            )
+            MetricCard(
+                label = "Pending",
+                value = pending.toString(),
+                color = Color(0xFFFFF0C7),
+                modifier = Modifier.weight(1f),
+            )
+            MetricCard(
+                label = "Conflict",
+                value = conflicts.toString(),
+                color = Color(0xFFFFDAD6),
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MetricCard(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = color,
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LearningCard(title: String, body: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
