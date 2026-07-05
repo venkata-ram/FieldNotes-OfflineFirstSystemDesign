@@ -49,6 +49,29 @@ The key rule is simple:
 
 The app saves first, shows local data immediately, and syncs later when the network is available.
 
+## Package Structure
+
+```text
+com.venkatsvision.offlinefirstsystemdesign
++-- data
+|   +-- connectivity   # Online/offline observer
+|   +-- local          # Room database, DAO, entities
+|   +-- remote         # Fake remote API and remote models
+|   +-- sync           # WorkManager worker and sync scheduler
++-- di                 # Hilt modules and dependency bindings
++-- domain             # App models, repository contract, sync states
++-- ui
+    +-- notes          # Compose screens, route, ViewModel, UI events/state
+    +-- theme          # Compose Material theme
+```
+
+Main idea:
+
+- `ui` renders state and sends user events.
+- `domain` defines stable app concepts.
+- `data` implements storage, fake remote, connectivity, and sync.
+- `di` wires dependencies with Hilt.
+
 ## Demo Flow
 
 1. Open `Notes` and tap `Create local note` or the `+` floating action button.
