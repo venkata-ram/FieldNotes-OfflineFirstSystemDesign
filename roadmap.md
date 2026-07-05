@@ -391,6 +391,11 @@ Learning topics:
 - Captive portals and flaky networks.
 - Why all network calls still need error handling.
 
+Status:
+
+- Implemented connectivity observer and online/offline sync panel status.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M13: Testing Offline-First Behavior
 
 Learning goal:

@@ -39,6 +39,7 @@ import com.venkatsvision.offlinefirstsystemdesign.ui.theme.OfflineFirstSystemDes
 @Composable
 fun FieldNotesScreen(
     uiState: NotesUiState,
+    isOnline: Boolean,
     onEvent: (NotesUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -69,6 +70,7 @@ fun FieldNotesScreen(
             item {
                 SyncPanel(
                     isSyncing = uiState.isSyncing,
+                    isOnline = isOnline,
                     lastSyncMessage = uiState.lastSyncMessage,
                     onSync = { onEvent(NotesUiEvent.SyncNow) },
                 )
@@ -117,6 +119,7 @@ fun FieldNotesScreen(
 @Composable
 private fun SyncPanel(
     isSyncing: Boolean,
+    isOnline: Boolean,
     lastSyncMessage: String,
     onSync: () -> Unit,
 ) {
@@ -137,7 +140,7 @@ private fun SyncPanel(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = lastSyncMessage,
+                    text = "${if (isOnline) "Online" else "Offline"} - $lastSyncMessage",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
@@ -330,6 +333,7 @@ private fun FieldNotesPreview() {
                     ),
                 ),
             ),
+            isOnline = true,
             onEvent = {},
         )
     }

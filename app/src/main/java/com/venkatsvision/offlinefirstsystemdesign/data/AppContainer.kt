@@ -2,6 +2,8 @@ package com.venkatsvision.offlinefirstsystemdesign.data
 
 import android.content.Context
 import androidx.room.Room
+import com.venkatsvision.offlinefirstsystemdesign.data.connectivity.AndroidConnectivityObserver
+import com.venkatsvision.offlinefirstsystemdesign.data.connectivity.ConnectivityObserver
 import com.venkatsvision.offlinefirstsystemdesign.data.local.AppDatabase
 import com.venkatsvision.offlinefirstsystemdesign.data.remote.FakeNotesApi
 import com.venkatsvision.offlinefirstsystemdesign.data.remote.InMemoryFakeNotesApi
@@ -22,6 +24,9 @@ object AppContainer {
 
     fun notesSyncScheduler(context: Context): NotesSyncScheduler =
         NotesSyncScheduler(context.applicationContext)
+
+    fun connectivityObserver(context: Context): ConnectivityObserver =
+        AndroidConnectivityObserver(context.applicationContext)
 
     private fun buildRepository(context: Context): NotesRepository {
         val database = Room.databaseBuilder(
