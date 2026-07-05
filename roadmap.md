@@ -175,6 +175,11 @@ Learning topics:
 - State holders.
 - Why screens should not know storage details.
 
+Status:
+
+- Implemented with `domain`, `ui.notes`, immutable UI state, UI events, and a `NotesViewModel`.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M4: Local Source Of Truth With Room
 
 Learning goal:
