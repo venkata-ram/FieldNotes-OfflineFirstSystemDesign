@@ -247,6 +247,11 @@ Learning topics:
 - Why fake APIs are useful for learning and tests.
 - Network-first vs database-first control flow.
 
+Status:
+
+- Implemented an in-memory fake notes API with delay and failure simulation.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M7: Manual Sync
 
 Learning goal:

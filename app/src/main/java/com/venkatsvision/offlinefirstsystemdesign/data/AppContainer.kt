@@ -3,11 +3,14 @@ package com.venkatsvision.offlinefirstsystemdesign.data
 import android.content.Context
 import androidx.room.Room
 import com.venkatsvision.offlinefirstsystemdesign.data.local.AppDatabase
+import com.venkatsvision.offlinefirstsystemdesign.data.remote.FakeNotesApi
+import com.venkatsvision.offlinefirstsystemdesign.data.remote.InMemoryFakeNotesApi
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 
 object AppContainer {
     @Volatile
     private var repository: NotesRepository? = null
+    private val fakeNotesApi: FakeNotesApi = InMemoryFakeNotesApi()
 
     fun notesRepository(context: Context): NotesRepository =
         repository ?: synchronized(this) {
