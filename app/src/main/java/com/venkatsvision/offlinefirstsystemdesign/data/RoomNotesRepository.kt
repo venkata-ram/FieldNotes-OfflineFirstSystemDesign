@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class RoomNotesRepository(
     private val noteDao: NoteDao,
@@ -27,6 +29,7 @@ class RoomNotesRepository(
         }
     private val _syncLog = MutableStateFlow(listOf("Debug sync log ready"))
     override val syncLog: Flow<List<String>> = _syncLog.asStateFlow()
+    private val syncMutex = Mutex()
 
     override suspend fun seedStarterNoteIfEmpty() {
         if (noteDao.countNotes() > 0) return
@@ -142,6 +145,17 @@ class RoomNotesRepository(
     }
 
     override suspend fun syncNow(): SyncResult {
+        if (syncMutex.isLocked) {
+            log("Sync skipped because another sync is already running")
+            return SyncResult(pushed = 0, pulled = 0, failed = 0)
+        }
+
+        return syncMutex.withLock {
+            syncNowLocked()
+        }
+    }
+
+    private suspend fun syncNowLocked(): SyncResult {
         log("Sync started")
         var pushed = 0
         var failed = 0

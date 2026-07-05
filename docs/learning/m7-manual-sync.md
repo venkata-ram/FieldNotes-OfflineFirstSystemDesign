@@ -19,6 +19,7 @@ This is the first milestone where local Room data and remote fake API data excha
 - Sync now pulls remote notes back into Room.
 - Successful sync marks notes as `Synced`.
 - Failed push attempts mark notes as `Failed`.
+- Repository sync is serialized so manual sync and background sync cannot process the same pending operation at the same time.
 
 ## Why This Matters For Offline-First Design
 
@@ -108,6 +109,7 @@ sequenceDiagram
 - Keep UI reading local state, not remote state.
 - Store remote IDs locally after successful create.
 - Treat sync as a repository/data-layer concern.
+- Protect the sync loop from concurrent manual/background execution.
 - Surface sync result to the user.
 - Keep failure states visible.
 
@@ -156,4 +158,3 @@ Result:
 3. How would you handle partial sync failure?
 4. What observability would you require for production sync?
 5. How would you explain push, pull, and merge to a product team?
-
