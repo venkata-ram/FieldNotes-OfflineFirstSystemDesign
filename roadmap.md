@@ -415,6 +415,11 @@ Learning topics:
 - Deterministic sync tests.
 - What should and should not be tested on Android device/emulator.
 
+Status:
+
+- Added fast offline-first behavior tests for core sync state transitions.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M14: Observability And Debug Tools
 
 Learning goal:
