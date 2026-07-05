@@ -69,6 +69,23 @@ class RoomNotesRepository(
         )
     }
 
+    override suspend fun deleteNote(noteId: Long) {
+        val existing = noteDao.getNote(noteId) ?: return
+        if (existing.remoteId == null) {
+            noteDao.hardDelete(noteId)
+            return
+        }
+
+        noteDao.update(
+            existing.copy(
+                syncStatus = SyncStatus.PendingDelete.name,
+                pendingOperation = PendingOperation.Delete.name,
+                isDeleted = true,
+                updatedAtMillis = clock(),
+            ),
+        )
+    }
+
     override suspend fun syncNow(): SyncResult {
         var pushed = 0
         var failed = 0
@@ -88,6 +105,13 @@ class RoomNotesRepository(
                         body = note.body,
                         updatedAtMillis = note.updatedAtMillis,
                     )
+
+                    PendingOperation.Delete -> {
+                        notesApi.deleteNote(note.remoteId ?: continue)
+                        noteDao.hardDelete(note.localId)
+                        pushed += 1
+                        null
+                    }
 
                     PendingOperation.None -> null
                 }

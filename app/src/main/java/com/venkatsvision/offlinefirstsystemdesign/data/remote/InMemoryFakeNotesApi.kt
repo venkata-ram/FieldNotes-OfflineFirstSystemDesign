@@ -48,6 +48,11 @@ class InMemoryFakeNotesApi(
         return note
     }
 
+    override suspend fun deleteNote(remoteId: String) {
+        simulateNetwork()
+        notes.remove(remoteId)
+    }
+
     private suspend fun simulateNetwork() {
         if (delayMillis > 0) {
             delay(delayMillis)

@@ -321,6 +321,11 @@ Learning topics:
 - Tombstones.
 - Soft delete vs hard delete.
 
+Status:
+
+- Implemented local delete, tombstones, remote delete API, and sync cleanup.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M10: Conflict Detection
 
 Learning goal:

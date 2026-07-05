@@ -2,6 +2,7 @@ package com.venkatsvision.offlinefirstsystemdesign.ui.notes
 
 import com.venkatsvision.offlinefirstsystemdesign.MainDispatcherRule
 import com.venkatsvision.offlinefirstsystemdesign.data.FakeNotesRepository
+import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -94,6 +95,21 @@ class NotesViewModelTest {
         viewModel.onEvent(NotesUiEvent.TitleChanged("Needs background sync"))
         viewModel.onEvent(NotesUiEvent.SaveNote)
 
+        assertEquals(1, scheduleCount)
+    }
+
+    @Test
+    fun deleteNote_removesNoteAndSchedulesBackgroundSync() = runTest {
+        var scheduleCount = 0
+        val viewModel = NotesViewModel(
+            notesRepository = FakeNotesRepository(),
+            scheduleBackgroundSync = { scheduleCount += 1 },
+        )
+        val noteId = viewModel.uiState.value.notes.first().id
+
+        viewModel.onEvent(NotesUiEvent.DeleteNote(noteId))
+
+        assertEquals(emptyList<FieldNote>(), viewModel.uiState.value.notes)
         assertEquals(1, scheduleCount)
     }
 }

@@ -47,4 +47,14 @@ class InMemoryFakeNotesApiTest {
         }
         assertEquals(emptyList<RemoteNote>(), api.getNotes())
     }
+
+    @Test
+    fun deleteNote_removesRemoteNote() = runTest {
+        val api = InMemoryFakeNotesApi(delayMillis = 0)
+        val created = api.createNote("Delete me", "Body", 1000L)
+
+        api.deleteNote(created.remoteId)
+
+        assertEquals(emptyList<RemoteNote>(), api.getNotes())
+    }
 }

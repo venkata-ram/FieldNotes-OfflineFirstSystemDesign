@@ -4,4 +4,5 @@ enum class PendingOperation {
     None,
     Create,
     Update,
+    Delete,
 }

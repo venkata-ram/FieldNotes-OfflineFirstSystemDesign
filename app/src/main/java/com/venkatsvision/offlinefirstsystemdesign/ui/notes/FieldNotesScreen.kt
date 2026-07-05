@@ -103,6 +103,7 @@ fun FieldNotesScreen(
                     NoteListItem(
                         note = note,
                         onClick = { onEvent(NotesUiEvent.EditNote(note.id)) },
+                        onDelete = { onEvent(NotesUiEvent.DeleteNote(note.id)) },
                     )
                 }
             }
@@ -218,7 +219,11 @@ private fun EmptyNotesState() {
 }
 
 @Composable
-private fun NoteListItem(note: FieldNote, onClick: () -> Unit) {
+private fun NoteListItem(
+    note: FieldNote,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -244,11 +249,16 @@ private fun NoteListItem(note: FieldNote, onClick: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                OutlinedButton(
-                    onClick = onClick,
-                    contentPadding = PaddingValues(horizontal = 12.dp),
-                ) {
-                    Text("Edit")
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OutlinedButton(
+                        onClick = onClick,
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                    ) {
+                        Text("Edit")
+                    }
+                    TextButton(onClick = onDelete) {
+                        Text("Delete")
+                    }
                 }
             }
             if (note.body.isNotBlank()) {

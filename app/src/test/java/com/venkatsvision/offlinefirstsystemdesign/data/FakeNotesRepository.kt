@@ -78,6 +78,12 @@ class FakeNotesRepository(
         }
     }
 
+    override suspend fun deleteNote(noteId: Long) {
+        notesFlow.update { notes ->
+            notes.filterNot { it.id == noteId }
+        }
+    }
+
     override suspend fun syncNow(): SyncResult {
         val pendingCount = notesFlow.value.count { it.pendingOperation != PendingOperation.None }
         notesFlow.update { notes ->

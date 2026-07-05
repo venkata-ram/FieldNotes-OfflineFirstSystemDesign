@@ -18,5 +18,6 @@ data class NoteEntity(
     val body: String,
     val syncStatus: String,
     val pendingOperation: String,
+    val isDeleted: Boolean = false,
     val updatedAtMillis: Long,
 )

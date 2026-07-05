@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NoteDao {
-    @Query("SELECT * FROM notes ORDER BY updatedAtMillis DESC")
+    @Query("SELECT * FROM notes WHERE isDeleted = 0 ORDER BY updatedAtMillis DESC")
     fun observeNotes(): Flow<List<NoteEntity>>
 
     @Query("SELECT * FROM notes WHERE localId = :localId")
@@ -20,6 +20,9 @@ interface NoteDao {
 
     @Query("SELECT * FROM notes WHERE pendingOperation != 'None' ORDER BY updatedAtMillis ASC")
     suspend fun getPendingNotes(): List<NoteEntity>
+
+    @Query("DELETE FROM notes WHERE localId = :localId")
+    suspend fun hardDelete(localId: Long)
 
     @Query("SELECT COUNT(*) FROM notes")
     suspend fun countNotes(): Int

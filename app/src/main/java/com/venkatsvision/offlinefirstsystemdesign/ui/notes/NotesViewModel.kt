@@ -35,6 +35,7 @@ class NotesViewModel(
             is NotesUiEvent.TitleChanged -> updateTitle(event.title)
             is NotesUiEvent.BodyChanged -> updateBody(event.body)
             is NotesUiEvent.EditNote -> startEditing(event.noteId)
+            is NotesUiEvent.DeleteNote -> deleteNote(event.noteId)
             NotesUiEvent.ClearEditor -> clearEditor()
             NotesUiEvent.SaveNote -> saveNote()
             NotesUiEvent.SyncNow -> syncNow()
@@ -98,6 +99,16 @@ class NotesViewModel(
         }
 
         clearEditor()
+    }
+
+    private fun deleteNote(noteId: Long) {
+        viewModelScope.launch {
+            notesRepository.deleteNote(noteId)
+            scheduleBackgroundSync()
+        }
+        if (_uiState.value.editingNoteId == noteId) {
+            clearEditor()
+        }
     }
 
     private fun syncNow() {
