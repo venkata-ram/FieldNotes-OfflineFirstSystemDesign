@@ -151,6 +151,11 @@ Learning topics:
 - UI state vs business state.
 - Why an app shell should be separated from data decisions.
 
+Status:
+
+- Implemented with an in-memory Compose Field Notes shell.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M3: Architecture Packages And UI State
 
 Learning goal:
