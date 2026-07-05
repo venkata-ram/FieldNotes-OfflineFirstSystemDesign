@@ -80,6 +80,7 @@ Main idea:
   <img src="docs/assets/screenshots/ss-3.png" width="180" alt="Offline-first demo screenshot 3" />
   <img src="docs/assets/screenshots/ss-4.png" width="180" alt="Offline-first demo screenshot 4" />
   <img src="docs/assets/screenshots/ss-5.png" width="180" alt="Offline-first demo screenshot 5" />
+  <img src="docs/assets/screenshots/ss-6.png" width="180" alt="Offline-first demo screenshot 6" />
 </p>
 
 ## Demo Flow
