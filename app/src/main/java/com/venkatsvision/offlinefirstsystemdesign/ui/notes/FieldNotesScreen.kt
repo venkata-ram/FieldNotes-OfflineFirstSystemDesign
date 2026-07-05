@@ -104,6 +104,7 @@ fun FieldNotesScreen(
                         note = note,
                         onClick = { onEvent(NotesUiEvent.EditNote(note.id)) },
                         onDelete = { onEvent(NotesUiEvent.DeleteNote(note.id)) },
+                        onSimulateRemoteEdit = { onEvent(NotesUiEvent.SimulateRemoteEdit(note.id)) },
                     )
                 }
             }
@@ -223,6 +224,7 @@ private fun NoteListItem(
     note: FieldNote,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onSimulateRemoteEdit: () -> Unit,
 ) {
     Card(
         onClick = onClick,
@@ -274,9 +276,27 @@ private fun NoteListItem(
             Text(
                 text = note.syncStatus.label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (note.syncStatus == com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus.Conflict) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
                 fontWeight = FontWeight.Medium,
             )
+            if (note.conflictTitle != null) {
+                Text(
+                    text = "Remote version: ${note.conflictTitle}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (note.remoteId != null) {
+                TextButton(onClick = onSimulateRemoteEdit) {
+                    Text("Simulate remote edit")
+                }
+            }
         }
     }
 }
@@ -290,6 +310,7 @@ private fun FieldNotesPreview() {
                 notes = listOf(
                     FieldNote(
                         id = 1L,
+                        remoteId = "remote-1",
                         title = "Inspect storage before syncing",
                         body = "Offline-first screens should read from local state first.",
                         syncStatus = com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus.Synced,

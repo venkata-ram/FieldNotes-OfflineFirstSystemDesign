@@ -8,10 +8,13 @@ import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 fun NoteEntity.toDomain(): FieldNote =
     FieldNote(
         id = localId,
+        remoteId = remoteId,
         title = title,
         body = body,
         syncStatus = enumValueOrDefault(syncStatus, SyncStatus.PendingCreate),
         pendingOperation = enumValueOrDefault(pendingOperation, PendingOperation.Create),
+        conflictTitle = conflictTitle,
+        conflictBody = conflictBody,
     )
 
 private inline fun <reified T : Enum<T>> enumValueOrDefault(

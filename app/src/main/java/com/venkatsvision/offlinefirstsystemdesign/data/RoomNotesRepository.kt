@@ -56,6 +56,8 @@ class RoomNotesRepository(
                 body = body,
                 syncStatus = if (existing.remoteId == null) {
                     SyncStatus.PendingCreate.name
+                } else if (existing.syncStatus == SyncStatus.Conflict.name) {
+                    SyncStatus.Conflict.name
                 } else {
                     SyncStatus.PendingUpdate.name
                 },
@@ -66,6 +68,17 @@ class RoomNotesRepository(
                 },
                 updatedAtMillis = clock(),
             ),
+        )
+    }
+
+    override suspend fun simulateRemoteEdit(noteId: Long) {
+        val existing = noteDao.getNote(noteId) ?: return
+        val remoteId = existing.remoteId ?: return
+        notesApi.updateNote(
+            remoteId = remoteId,
+            title = "${existing.title} (remote)",
+            body = "${existing.body}\nRemote edit created for conflict practice.",
+            updatedAtMillis = clock() + 10_000,
         )
     }
 
@@ -99,12 +112,7 @@ class RoomNotesRepository(
                         updatedAtMillis = note.updatedAtMillis,
                     )
 
-                    PendingOperation.Update -> notesApi.updateNote(
-                        remoteId = note.remoteId ?: continue,
-                        title = note.title,
-                        body = note.body,
-                        updatedAtMillis = note.updatedAtMillis,
-                    )
+                    PendingOperation.Update -> updateRemoteUnlessConflict(note)
 
                     PendingOperation.Delete -> {
                         notesApi.deleteNote(note.remoteId ?: continue)
@@ -137,14 +145,31 @@ class RoomNotesRepository(
             if (local == null) {
                 noteDao.insert(remote.toEntity())
                 pulled += 1
-            } else if (local.pendingOperation == PendingOperation.None.name &&
-                remote.updatedAtMillis > local.updatedAtMillis
-            ) {
-                noteDao.update(local.updatedFrom(remote))
-                pulled += 1
+            } else if (remote.updatedAtMillis > local.updatedAtMillis) {
+                if (local.pendingOperation == PendingOperation.None.name) {
+                    noteDao.update(local.updatedFrom(remote))
+                    pulled += 1
+                } else {
+                    noteDao.update(local.conflictedWith(remote))
+                }
             }
         }
         return pulled
+    }
+
+    private suspend fun updateRemoteUnlessConflict(local: NoteEntity): RemoteNote? {
+        val remoteId = local.remoteId ?: error("Pending update is missing remote ID")
+        val remoteBeforePush = notesApi.getNotes().firstOrNull { it.remoteId == remoteId }
+        if (remoteBeforePush != null && remoteBeforePush.updatedAtMillis > local.updatedAtMillis) {
+            noteDao.update(local.conflictedWith(remoteBeforePush))
+            return null
+        }
+        return notesApi.updateNote(
+            remoteId = remoteId,
+            title = local.title,
+            body = local.body,
+            updatedAtMillis = local.updatedAtMillis,
+        )
     }
 
     private fun NoteEntity.syncedWith(remote: RemoteNote): NoteEntity =
@@ -154,6 +179,9 @@ class RoomNotesRepository(
             body = remote.body,
             syncStatus = SyncStatus.Synced.name,
             pendingOperation = PendingOperation.None.name,
+            conflictTitle = null,
+            conflictBody = null,
+            conflictUpdatedAtMillis = null,
             updatedAtMillis = remote.updatedAtMillis,
         )
 
@@ -163,7 +191,18 @@ class RoomNotesRepository(
             body = remote.body,
             syncStatus = SyncStatus.Synced.name,
             pendingOperation = PendingOperation.None.name,
+            conflictTitle = null,
+            conflictBody = null,
+            conflictUpdatedAtMillis = null,
             updatedAtMillis = remote.updatedAtMillis,
+        )
+
+    private fun NoteEntity.conflictedWith(remote: RemoteNote): NoteEntity =
+        copy(
+            syncStatus = SyncStatus.Conflict.name,
+            conflictTitle = remote.title,
+            conflictBody = remote.body,
+            conflictUpdatedAtMillis = remote.updatedAtMillis,
         )
 
     private fun RemoteNote.toEntity(): NoteEntity =

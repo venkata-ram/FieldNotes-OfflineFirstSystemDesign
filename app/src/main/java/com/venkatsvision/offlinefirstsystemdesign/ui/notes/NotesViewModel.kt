@@ -36,6 +36,7 @@ class NotesViewModel(
             is NotesUiEvent.BodyChanged -> updateBody(event.body)
             is NotesUiEvent.EditNote -> startEditing(event.noteId)
             is NotesUiEvent.DeleteNote -> deleteNote(event.noteId)
+            is NotesUiEvent.SimulateRemoteEdit -> simulateRemoteEdit(event.noteId)
             NotesUiEvent.ClearEditor -> clearEditor()
             NotesUiEvent.SaveNote -> saveNote()
             NotesUiEvent.SyncNow -> syncNow()
@@ -108,6 +109,15 @@ class NotesViewModel(
         }
         if (_uiState.value.editingNoteId == noteId) {
             clearEditor()
+        }
+    }
+
+    private fun simulateRemoteEdit(noteId: Long) {
+        viewModelScope.launch {
+            notesRepository.simulateRemoteEdit(noteId)
+            _uiState.update { current ->
+                current.copy(lastSyncMessage = "Remote edit simulated. Edit locally, then sync to see conflict detection.")
+            }
         }
     }
 

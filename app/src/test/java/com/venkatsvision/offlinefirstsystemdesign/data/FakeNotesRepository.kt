@@ -13,6 +13,7 @@ class FakeNotesRepository(
     initialNotes: List<FieldNote> = listOf(
         FieldNote(
             id = 1L,
+            remoteId = "remote-1",
             title = "Inspect storage before syncing",
             body = "Offline-first screens should read from local state first.",
             syncStatus = SyncStatus.Synced,
@@ -31,6 +32,7 @@ class FakeNotesRepository(
         notesFlow.value = listOf(
             FieldNote(
                 id = nextId++,
+                remoteId = "remote-$nextId",
                 title = "Inspect storage before syncing",
                 body = "Offline-first screens should read from local state first.",
                 syncStatus = SyncStatus.Synced,
@@ -44,6 +46,7 @@ class FakeNotesRepository(
             listOf(
                 FieldNote(
                     id = nextId++,
+                    remoteId = null,
                     title = title,
                     body = body,
                     syncStatus = SyncStatus.PendingCreate,
@@ -84,11 +87,14 @@ class FakeNotesRepository(
         }
     }
 
+    override suspend fun simulateRemoteEdit(noteId: Long) = Unit
+
     override suspend fun syncNow(): SyncResult {
         val pendingCount = notesFlow.value.count { it.pendingOperation != PendingOperation.None }
         notesFlow.update { notes ->
             notes.map { note ->
                 note.copy(
+                    remoteId = note.remoteId ?: "remote-${note.id}",
                     syncStatus = SyncStatus.Synced,
                     pendingOperation = PendingOperation.None,
                 )

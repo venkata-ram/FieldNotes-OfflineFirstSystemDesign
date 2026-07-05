@@ -5,5 +5,6 @@ enum class SyncStatus(val label: String) {
     PendingCreate("Pending create"),
     PendingUpdate("Pending update"),
     PendingDelete("Pending delete"),
+    Conflict("Conflict detected"),
     Failed("Sync failed"),
 }

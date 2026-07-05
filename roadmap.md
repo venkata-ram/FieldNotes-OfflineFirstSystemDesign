@@ -345,6 +345,11 @@ Learning topics:
 - Server-authoritative conflict resolution.
 - Client-authoritative conflict resolution.
 
+Status:
+
+- Implemented timestamp-based conflict detection with local conflict metadata.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M11: Conflict Resolution UI
 
 Learning goal:

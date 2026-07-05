@@ -19,5 +19,8 @@ data class NoteEntity(
     val syncStatus: String,
     val pendingOperation: String,
     val isDeleted: Boolean = false,
+    val conflictTitle: String? = null,
+    val conflictBody: String? = null,
+    val conflictUpdatedAtMillis: Long? = null,
     val updatedAtMillis: Long,
 )
