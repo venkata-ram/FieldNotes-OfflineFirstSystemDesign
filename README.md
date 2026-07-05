@@ -29,25 +29,20 @@ The app is a small Field Notes tool built with Kotlin, Jetpack Compose, Room, Fl
 
 ```mermaid
 flowchart TB
-    subgraph Main["Offline-first flow"]
-        direction TB
-        A["User writes a note"]
-        B["Save immediately<br/>to local database"]
-        C["App shows notes<br/>from local database"]
-        D["Sync when network<br/>is available"]
-        E["Remote server copy"]
-        F{"Conflict?"}
-        H["Mark note synced"]
+    A["User writes a note"]
+    B["Save immediately<br/>to local database"]
+    C["Show note from<br/>local database"]
+    D["Sync when network<br/>is available"]
+    E["Remote server copy"]
+    F{"Conflict?"}
+    G["Mark note synced"]
+    H["Resolve conflict<br/>merge or choose version"]
+    I["Save resolved note<br/>locally"]
+    J["Show latest note<br/>from local database"]
 
-        A --> B --> C --> D --> E --> F
-        F -->|No| H
-    end
-
-    G["Resolve conflict<br/>merge or choose version"]
-
-    F -->|Yes| G
-    G -.->|save resolved note locally| B
-    H -.->|show latest local note| C
+    A --> B --> C --> D --> E --> F
+    F -->|No| G --> J
+    F -->|Yes| H --> I --> J
 ```
 
 The key rule is simple:
