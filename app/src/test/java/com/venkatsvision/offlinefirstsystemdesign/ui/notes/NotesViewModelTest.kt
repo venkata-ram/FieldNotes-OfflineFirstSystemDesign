@@ -112,4 +112,63 @@ class NotesViewModelTest {
         assertEquals(emptyList<FieldNote>(), viewModel.uiState.value.notes)
         assertEquals(1, scheduleCount)
     }
+
+    @Test
+    fun keepLocalConflict_returnsNoteToPendingUpdateAndSchedulesSync() = runTest {
+        var scheduleCount = 0
+        val viewModel = NotesViewModel(
+            notesRepository = FakeNotesRepository(
+                initialNotes = listOf(
+                    FieldNote(
+                        id = 1L,
+                        remoteId = "remote-1",
+                        title = "Local title",
+                        body = "Local body",
+                        syncStatus = SyncStatus.Conflict,
+                        pendingOperation = PendingOperation.Update,
+                        conflictTitle = "Remote title",
+                        conflictBody = "Remote body",
+                    ),
+                ),
+            ),
+            scheduleBackgroundSync = { scheduleCount += 1 },
+        )
+
+        viewModel.onEvent(NotesUiEvent.KeepLocalConflict(1L))
+
+        val note = viewModel.uiState.value.notes.first()
+        assertEquals("Local title", note.title)
+        assertEquals(SyncStatus.PendingUpdate, note.syncStatus)
+        assertEquals(null, note.conflictTitle)
+        assertEquals(1, scheduleCount)
+    }
+
+    @Test
+    fun useRemoteConflict_acceptsRemoteVersion() = runTest {
+        val viewModel = NotesViewModel(
+            notesRepository = FakeNotesRepository(
+                initialNotes = listOf(
+                    FieldNote(
+                        id = 1L,
+                        remoteId = "remote-1",
+                        title = "Local title",
+                        body = "Local body",
+                        syncStatus = SyncStatus.Conflict,
+                        pendingOperation = PendingOperation.Update,
+                        conflictTitle = "Remote title",
+                        conflictBody = "Remote body",
+                    ),
+                ),
+            ),
+        )
+
+        viewModel.onEvent(NotesUiEvent.UseRemoteConflict(1L))
+
+        val note = viewModel.uiState.value.notes.first()
+        assertEquals("Remote title", note.title)
+        assertEquals("Remote body", note.body)
+        assertEquals(SyncStatus.Synced, note.syncStatus)
+        assertEquals(PendingOperation.None, note.pendingOperation)
+        assertEquals(null, note.conflictTitle)
+    }
 }

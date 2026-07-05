@@ -2,6 +2,7 @@ package com.venkatsvision.offlinefirstsystemdesign.data
 
 import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
+import com.venkatsvision.offlinefirstsystemdesign.domain.ConflictResolution
 import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncResult
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
@@ -88,6 +89,34 @@ class FakeNotesRepository(
     }
 
     override suspend fun simulateRemoteEdit(noteId: Long) = Unit
+
+    override suspend fun resolveConflict(noteId: Long, resolution: ConflictResolution) {
+        notesFlow.update { notes ->
+            notes.map { note ->
+                if (note.id == noteId) {
+                    when (resolution) {
+                        ConflictResolution.KeepLocal -> note.copy(
+                            syncStatus = SyncStatus.PendingUpdate,
+                            pendingOperation = PendingOperation.Update,
+                            conflictTitle = null,
+                            conflictBody = null,
+                        )
+
+                        ConflictResolution.UseRemote -> note.copy(
+                            title = note.conflictTitle ?: note.title,
+                            body = note.conflictBody ?: note.body,
+                            syncStatus = SyncStatus.Synced,
+                            pendingOperation = PendingOperation.None,
+                            conflictTitle = null,
+                            conflictBody = null,
+                        )
+                    }
+                } else {
+                    note
+                }
+            }
+        }
+    }
 
     override suspend fun syncNow(): SyncResult {
         val pendingCount = notesFlow.value.count { it.pendingOperation != PendingOperation.None }

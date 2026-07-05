@@ -4,6 +4,7 @@ import com.venkatsvision.offlinefirstsystemdesign.data.local.NoteDao
 import com.venkatsvision.offlinefirstsystemdesign.data.local.NoteEntity
 import com.venkatsvision.offlinefirstsystemdesign.data.remote.FakeNotesApi
 import com.venkatsvision.offlinefirstsystemdesign.data.remote.RemoteNote
+import com.venkatsvision.offlinefirstsystemdesign.domain.ConflictResolution
 import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
@@ -80,6 +81,35 @@ class RoomNotesRepository(
             body = "${existing.body}\nRemote edit created for conflict practice.",
             updatedAtMillis = clock() + 10_000,
         )
+    }
+
+    override suspend fun resolveConflict(noteId: Long, resolution: ConflictResolution) {
+        val existing = noteDao.getNote(noteId) ?: return
+        if (existing.syncStatus != SyncStatus.Conflict.name) return
+
+        val resolved = when (resolution) {
+            ConflictResolution.KeepLocal -> existing.copy(
+                syncStatus = SyncStatus.PendingUpdate.name,
+                pendingOperation = PendingOperation.Update.name,
+                conflictTitle = null,
+                conflictBody = null,
+                conflictUpdatedAtMillis = null,
+                updatedAtMillis = clock(),
+            )
+
+            ConflictResolution.UseRemote -> existing.copy(
+                title = existing.conflictTitle ?: existing.title,
+                body = existing.conflictBody ?: existing.body,
+                syncStatus = SyncStatus.Synced.name,
+                pendingOperation = PendingOperation.None.name,
+                conflictTitle = null,
+                conflictBody = null,
+                conflictUpdatedAtMillis = null,
+                updatedAtMillis = existing.conflictUpdatedAtMillis ?: clock(),
+            )
+        }
+
+        noteDao.update(resolved)
     }
 
     override suspend fun deleteNote(noteId: Long) {

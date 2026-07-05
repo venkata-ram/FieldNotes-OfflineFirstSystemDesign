@@ -368,6 +368,11 @@ Learning topics:
 - Data loss risks.
 - Product choices in system design.
 
+Status:
+
+- Implemented keep-local and use-remote conflict resolution controls.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M12: Connectivity Awareness
 
 Learning goal:

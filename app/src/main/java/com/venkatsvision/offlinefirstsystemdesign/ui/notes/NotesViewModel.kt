@@ -2,6 +2,7 @@ package com.venkatsvision.offlinefirstsystemdesign.ui.notes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.venkatsvision.offlinefirstsystemdesign.domain.ConflictResolution
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,8 @@ class NotesViewModel(
             is NotesUiEvent.EditNote -> startEditing(event.noteId)
             is NotesUiEvent.DeleteNote -> deleteNote(event.noteId)
             is NotesUiEvent.SimulateRemoteEdit -> simulateRemoteEdit(event.noteId)
+            is NotesUiEvent.KeepLocalConflict -> resolveConflict(event.noteId, ConflictResolution.KeepLocal)
+            is NotesUiEvent.UseRemoteConflict -> resolveConflict(event.noteId, ConflictResolution.UseRemote)
             NotesUiEvent.ClearEditor -> clearEditor()
             NotesUiEvent.SaveNote -> saveNote()
             NotesUiEvent.SyncNow -> syncNow()
@@ -117,6 +120,15 @@ class NotesViewModel(
             notesRepository.simulateRemoteEdit(noteId)
             _uiState.update { current ->
                 current.copy(lastSyncMessage = "Remote edit simulated. Edit locally, then sync to see conflict detection.")
+            }
+        }
+    }
+
+    private fun resolveConflict(noteId: Long, resolution: ConflictResolution) {
+        viewModelScope.launch {
+            notesRepository.resolveConflict(noteId, resolution)
+            if (resolution == ConflictResolution.KeepLocal) {
+                scheduleBackgroundSync()
             }
         }
     }
