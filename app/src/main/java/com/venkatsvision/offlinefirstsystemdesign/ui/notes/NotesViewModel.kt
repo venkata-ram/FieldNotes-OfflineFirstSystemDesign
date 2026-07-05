@@ -49,7 +49,7 @@ class NotesViewModel(
             is NotesUiEvent.UseRemoteConflict -> resolveConflict(event.noteId, ConflictResolution.UseRemote)
             NotesUiEvent.ClearEditor -> clearEditor()
             NotesUiEvent.SaveNote -> saveNote()
-            NotesUiEvent.SyncNow -> syncNow()
+            is NotesUiEvent.SyncNow -> syncNow(event.isOnline)
         }
     }
 
@@ -140,7 +140,14 @@ class NotesViewModel(
         }
     }
 
-    private fun syncNow() {
+    private fun syncNow(isOnline: Boolean) {
+        if (!isOnline) {
+            _uiState.update { current ->
+                current.copy(lastSyncMessage = "Offline. Local changes are saved and will sync when network returns.")
+            }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { current ->
                 current.copy(isSyncing = true, lastSyncMessage = "Syncing...")

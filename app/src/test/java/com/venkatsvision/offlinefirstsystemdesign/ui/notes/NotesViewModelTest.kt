@@ -75,12 +75,30 @@ class NotesViewModelTest {
 
         viewModel.onEvent(NotesUiEvent.TitleChanged("Trail report"))
         viewModel.onEvent(NotesUiEvent.SaveNote)
-        viewModel.onEvent(NotesUiEvent.SyncNow)
+        viewModel.onEvent(NotesUiEvent.SyncNow(isOnline = true))
 
         val state = viewModel.uiState.value
         assertEquals(SyncStatus.Synced, state.notes.first().syncStatus)
         assertEquals(PendingOperation.None, state.notes.first().pendingOperation)
         assertEquals("Sync complete: pushed 1, pulled 0", state.lastSyncMessage)
+        assertFalse(state.isSyncing)
+    }
+
+    @Test
+    fun syncNow_whenOfflineDoesNotPushPendingNotes() = runTest {
+        val viewModel = NotesViewModel(FakeNotesRepository())
+
+        viewModel.onEvent(NotesUiEvent.TitleChanged("Offline write"))
+        viewModel.onEvent(NotesUiEvent.SaveNote)
+        viewModel.onEvent(NotesUiEvent.SyncNow(isOnline = false))
+
+        val state = viewModel.uiState.value
+        assertEquals(SyncStatus.PendingCreate, state.notes.first().syncStatus)
+        assertEquals(PendingOperation.Create, state.notes.first().pendingOperation)
+        assertEquals(
+            "Offline. Local changes are saved and will sync when network returns.",
+            state.lastSyncMessage,
+        )
         assertFalse(state.isSyncing)
     }
 

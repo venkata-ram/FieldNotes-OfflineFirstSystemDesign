@@ -72,7 +72,7 @@ fun FieldNotesScreen(
                     isSyncing = uiState.isSyncing,
                     isOnline = isOnline,
                     lastSyncMessage = uiState.lastSyncMessage,
-                    onSync = { onEvent(NotesUiEvent.SyncNow) },
+                    onSync = { onEvent(NotesUiEvent.SyncNow(isOnline = isOnline)) },
                 )
             }
 
@@ -149,7 +149,7 @@ private fun SyncPanel(
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
-            Button(onClick = onSync, enabled = !isSyncing) {
+            Button(onClick = onSync, enabled = !isSyncing && isOnline) {
                 Text(if (isSyncing) "Syncing" else "Sync now")
             }
         }

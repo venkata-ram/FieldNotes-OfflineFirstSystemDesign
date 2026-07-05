@@ -10,5 +10,5 @@ sealed interface NotesUiEvent {
     data class UseRemoteConflict(val noteId: Long) : NotesUiEvent
     data object ClearEditor : NotesUiEvent
     data object SaveNote : NotesUiEvent
-    data object SyncNow : NotesUiEvent
+    data class SyncNow(val isOnline: Boolean) : NotesUiEvent
 }

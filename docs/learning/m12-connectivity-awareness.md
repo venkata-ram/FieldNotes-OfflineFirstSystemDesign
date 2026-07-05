@@ -13,6 +13,8 @@ This milestone adds a connectivity observer and displays network status in the s
 - Added `ACCESS_NETWORK_STATE` permission.
 - Added connectivity state to `FieldNotesRoute`.
 - Displayed `Online` or `Offline` in the sync panel.
+- Manual sync is disabled while offline.
+- If an offline sync event reaches the ViewModel, it leaves pending writes untouched and shows an offline message.
 
 ## Why This Matters For Offline-First Design
 
@@ -73,6 +75,10 @@ Disadvantages:
 - Still does not replace error handling.
 
 Chosen approach: use connectivity as a hint.
+
+Important implementation note:
+
+Manual sync uses the connectivity hint to avoid a misleading educational result. Without this guard, the in-memory fake API can still "sync" while the device is offline because it is not a real network service.
 
 ## Simple Diagram
 
@@ -140,4 +146,3 @@ Result:
 3. How would backend health influence mobile sync decisions?
 4. How would you design observability for network-related sync failures?
 5. How would the strategy change for critical workflows?
-
