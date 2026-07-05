@@ -201,6 +201,11 @@ Learning topics:
 - Flow from Room.
 - Why local storage is central to offline-first design.
 
+Status:
+
+- Implemented Room as the local source of truth behind `NotesRepository`.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M5: Local Writes And Sync Status
 
 Learning goal:

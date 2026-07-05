@@ -1,29 +1,33 @@
 package com.venkatsvision.offlinefirstsystemdesign.ui.notes
 
 import androidx.lifecycle.ViewModel
-import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
+import androidx.lifecycle.viewModelScope
+import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class NotesViewModel : ViewModel() {
-    private var nextId = 2
-
-    private val _uiState = MutableStateFlow(
-        NotesUiState(
-            notes = listOf(
-                FieldNote(
-                    id = 1,
-                    title = "Inspect storage before syncing",
-                    body = "Offline-first screens should read from local state first. Later milestones will replace this in-memory list with Room.",
-                    localLabel = "Local only",
-                ),
-            ),
-        ),
-    )
+class NotesViewModel(
+    private val notesRepository: NotesRepository,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(NotesUiState())
 
     val uiState: StateFlow<NotesUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            notesRepository.seedStarterNoteIfEmpty()
+        }
+        viewModelScope.launch {
+            notesRepository.notes.collect { notes ->
+                _uiState.update { current ->
+                    current.copy(notes = notes)
+                }
+            }
+        }
+    }
 
     fun onEvent(event: NotesUiEvent) {
         when (event) {
@@ -47,7 +51,7 @@ class NotesViewModel : ViewModel() {
         }
     }
 
-    private fun startEditing(noteId: Int) {
+    private fun startEditing(noteId: Long) {
         val note = _uiState.value.notes.firstOrNull { it.id == noteId } ?: return
         _uiState.update { current ->
             current.copy(
@@ -75,38 +79,20 @@ class NotesViewModel : ViewModel() {
         if (cleanTitle.isEmpty() && cleanBody.isEmpty()) return
 
         val title = cleanTitle.ifEmpty { "Untitled note" }
-        val updatedNotes = if (current.editingNoteId == null) {
-            listOf(
-                FieldNote(
-                    id = nextId,
+        if (current.editingNoteId == null) {
+            viewModelScope.launch {
+                notesRepository.createNote(title = title, body = cleanBody)
+            }
+        } else {
+            viewModelScope.launch {
+                notesRepository.updateNote(
+                    noteId = current.editingNoteId,
                     title = title,
                     body = cleanBody,
-                    localLabel = "Local only",
-                ),
-            ) + current.notes
-        } else {
-            current.notes.map { note ->
-                if (note.id == current.editingNoteId) {
-                    note.copy(
-                        title = title,
-                        body = cleanBody,
-                        localLabel = "Edited locally",
-                    )
-                } else {
-                    note
-                }
+                )
             }
         }
 
-        if (current.editingNoteId == null) {
-            nextId += 1
-        }
-
-        _uiState.value = current.copy(
-            notes = updatedNotes,
-            editingNoteId = null,
-            editorTitle = "",
-            editorBody = "",
-        )
+        clearEditor()
     }
 }

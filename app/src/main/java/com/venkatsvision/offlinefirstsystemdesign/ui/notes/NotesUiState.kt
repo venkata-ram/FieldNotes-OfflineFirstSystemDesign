@@ -4,7 +4,7 @@ import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 
 data class NotesUiState(
     val notes: List<FieldNote> = emptyList(),
-    val editingNoteId: Int? = null,
+    val editingNoteId: Long? = null,
     val editorTitle: String = "",
     val editorBody: String = "",
 ) {

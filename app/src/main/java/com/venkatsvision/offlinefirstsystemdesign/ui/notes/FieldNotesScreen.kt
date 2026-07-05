@@ -236,7 +236,7 @@ private fun FieldNotesPreview() {
             uiState = NotesUiState(
                 notes = listOf(
                     FieldNote(
-                        id = 1,
+                        id = 1L,
                         title = "Inspect storage before syncing",
                         body = "Offline-first screens should read from local state first.",
                         localLabel = "Local only",
