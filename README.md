@@ -29,56 +29,32 @@ The app is a small Field Notes tool built with Kotlin, Jetpack Compose, Room, Fl
 
 ```mermaid
 flowchart TB
-    User["User"]
+    User["User action<br/>create, edit, delete"]
+    UI["Compose UI<br/>shows local notes"]
+    VM["NotesViewModel<br/>turns actions into events"]
+    Repo["NotesRepository<br/>offline-first rules"]
+    Room["Room database<br/>local source of truth"]
+    Sync["Manual or auto sync<br/>WorkManager waits for network"]
+    Mutex["sync Mutex<br/>only one sync at a time"]
+    Remote["Fake remote API<br/>server copy"]
+    Conflict["Conflict state<br/>merge both / keep local / use remote"]
 
-    subgraph UI_LAYER["UI layer"]
-        Screen["Compose screens<br/>Notes, Remote, Sync, Learn"]
-        VM["NotesViewModel<br/>UI state + events"]
-        Connectivity["ConnectivityObserver<br/>online/offline hint"]
-    end
+    User --> UI
+    UI -->|NotesUiEvent| VM
+    VM -->|save locally first| Repo
+    Repo -->|insert/update/tombstone| Room
+    Room -->|Flow emits latest local notes| Repo
+    Repo -->|state update| VM
+    VM -->|NotesUiState| UI
 
-    subgraph DOMAIN_LAYER["Domain boundary"]
-        Repo["NotesRepository<br/>offline-first API"]
-        Lock["sync Mutex<br/>one sync at a time"]
-    end
-
-    subgraph DATA_LAYER["Data layer"]
-        Room["Room database<br/>local source of truth"]
-        Api["FakeNotesApi<br/>remote demo source"]
-    end
-
-    subgraph BACKGROUND_LAYER["Background sync"]
-        Scheduler["SyncScheduler"]
-        Work["WorkManager<br/>one-time + network constraint"]
-        Worker["NotesSyncWorker"]
-    end
-
-    subgraph DI_LAYER["Dependency injection"]
-        Hilt["Hilt modules<br/>create and wire dependencies"]
-    end
-
-    User --> Screen
-    Connectivity -->|network status| Screen
-    Screen -->|NotesUiEvent| VM
-    VM -->|save/edit/delete/resolve/sync| Repo
-    Repo --> Lock
-    Lock --> Repo
-    Repo -->|read/write local state| Room
-    Repo -->|push/pull sync| Api
-    Room -->|Flow emits notes| Repo
-    Repo -->|Flow emits state| VM
-    VM -->|NotesUiState| Screen
-
-    VM -->|auto sync enabled| Scheduler
-    Scheduler --> Work
-    Work -->|runs when connected| Worker
-    Worker --> Repo
-
-    Hilt -.-> VM
-    Hilt -.-> Repo
-    Hilt -.-> Scheduler
-    Hilt -.-> Worker
-    Hilt -.-> Connectivity
+    VM -->|sync requested| Sync
+    Sync --> Mutex
+    Mutex --> Repo
+    Repo -->|push pending changes| Remote
+    Remote -->|pull remote changes| Repo
+    Repo -->|mark synced or conflict| Room
+    Repo --> Conflict
+    Conflict -->|resolved result becomes local update| Room
 ```
 
 The key rule is simple:
