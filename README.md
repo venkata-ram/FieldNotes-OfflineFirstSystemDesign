@@ -29,39 +29,29 @@ The app is a small Field Notes tool built with Kotlin, Jetpack Compose, Room, Fl
 
 ```mermaid
 flowchart TB
-    User["User action<br/>create, edit, delete"]
-    UI["Compose UI<br/>shows local notes"]
-    VM["NotesViewModel<br/>turns actions into events"]
-    Repo["NotesRepository<br/>offline-first rules"]
-    Room["Room database<br/>local source of truth"]
-    Sync["Manual or auto sync<br/>WorkManager waits for network"]
-    Mutex["sync Mutex<br/>only one sync at a time"]
-    Remote["Fake remote API<br/>server copy"]
-    Conflict["Conflict state<br/>merge both / keep local / use remote"]
+    A["User writes a note"]
+    B["Save immediately<br/>to local database"]
+    C["App shows notes<br/>from local database"]
+    D["Sync when network<br/>is available"]
+    E["Remote server copy"]
+    F{"Conflict?"}
+    G["Resolve conflict<br/>merge or choose version"]
+    H["Mark note synced"]
 
-    User --> UI
-    UI -->|NotesUiEvent| VM
-    VM -->|save locally first| Repo
-    Repo -->|insert/update/tombstone| Room
-    Room -->|Flow emits latest local notes| Repo
-    Repo -->|state update| VM
-    VM -->|NotesUiState| UI
-
-    VM -->|sync requested| Sync
-    Sync --> Mutex
-    Mutex --> Repo
-    Repo -->|push pending changes| Remote
-    Remote -->|pull remote changes| Repo
-    Repo -->|mark synced or conflict| Room
-    Repo --> Conflict
-    Conflict -->|resolved result becomes local update| Room
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F -->|No| H
+    F -->|Yes| G
+    G --> B
+    H --> C
 ```
 
 The key rule is simple:
 
-The UI observes local state. Sync updates local state.
-
-Manual sync and WorkManager both call `NotesRepository.syncNow()`. The repository protects that sync loop with a `Mutex`, which means only one sync can push/pull at a time.
+The app saves first, shows local data immediately, and syncs later when the network is available.
 
 ## Demo Flow
 
