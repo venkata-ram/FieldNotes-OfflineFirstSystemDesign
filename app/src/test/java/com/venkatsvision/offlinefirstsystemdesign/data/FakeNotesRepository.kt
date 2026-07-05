@@ -2,6 +2,8 @@ package com.venkatsvision.offlinefirstsystemdesign.data
 
 import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
+import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
+import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -12,7 +14,8 @@ class FakeNotesRepository(
             id = 1L,
             title = "Inspect storage before syncing",
             body = "Offline-first screens should read from local state first.",
-            localLabel = "Stored locally",
+            syncStatus = SyncStatus.Synced,
+            pendingOperation = PendingOperation.None,
         ),
     ),
 ) : NotesRepository {
@@ -29,7 +32,8 @@ class FakeNotesRepository(
                 id = nextId++,
                 title = "Inspect storage before syncing",
                 body = "Offline-first screens should read from local state first.",
-                localLabel = "Stored locally",
+                syncStatus = SyncStatus.Synced,
+                pendingOperation = PendingOperation.None,
             ),
         )
     }
@@ -41,7 +45,8 @@ class FakeNotesRepository(
                     id = nextId++,
                     title = title,
                     body = body,
-                    localLabel = "Stored locally",
+                    syncStatus = SyncStatus.PendingCreate,
+                    pendingOperation = PendingOperation.Create,
                 ),
             ) + notes
         }
@@ -54,7 +59,16 @@ class FakeNotesRepository(
                     note.copy(
                         title = title,
                         body = body,
-                        localLabel = "Updated locally",
+                        syncStatus = if (note.pendingOperation == PendingOperation.Create) {
+                            SyncStatus.PendingCreate
+                        } else {
+                            SyncStatus.PendingUpdate
+                        },
+                        pendingOperation = if (note.pendingOperation == PendingOperation.Create) {
+                            PendingOperation.Create
+                        } else {
+                            PendingOperation.Update
+                        },
                     )
                 } else {
                     note

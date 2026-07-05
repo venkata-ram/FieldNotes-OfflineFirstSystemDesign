@@ -10,6 +10,7 @@ data class NoteEntity(
     val remoteId: String? = null,
     val title: String,
     val body: String,
-    val localLabel: String,
+    val syncStatus: String,
+    val pendingOperation: String,
     val updatedAtMillis: Long,
 )

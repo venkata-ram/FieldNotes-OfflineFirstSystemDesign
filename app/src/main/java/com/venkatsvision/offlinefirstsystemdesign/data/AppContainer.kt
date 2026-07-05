@@ -21,7 +21,9 @@ object AppContainer {
             context,
             AppDatabase::class.java,
             "field-notes.db",
-        ).build()
+        )
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
 
         return RoomNotesRepository(database.noteDao())
     }

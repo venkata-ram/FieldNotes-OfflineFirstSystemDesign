@@ -4,6 +4,8 @@ import com.venkatsvision.offlinefirstsystemdesign.data.local.NoteDao
 import com.venkatsvision.offlinefirstsystemdesign.data.local.NoteEntity
 import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
+import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
+import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -23,7 +25,8 @@ class RoomNotesRepository(
             NoteEntity(
                 title = "Inspect storage before syncing",
                 body = "Offline-first screens should read from local storage first. This note is now stored in Room.",
-                localLabel = "Stored locally",
+                syncStatus = SyncStatus.Synced.name,
+                pendingOperation = PendingOperation.None.name,
                 updatedAtMillis = clock(),
             ),
         )
@@ -34,7 +37,8 @@ class RoomNotesRepository(
             NoteEntity(
                 title = title,
                 body = body,
-                localLabel = "Stored locally",
+                syncStatus = SyncStatus.PendingCreate.name,
+                pendingOperation = PendingOperation.Create.name,
                 updatedAtMillis = clock(),
             ),
         )
@@ -46,7 +50,16 @@ class RoomNotesRepository(
             existing.copy(
                 title = title,
                 body = body,
-                localLabel = "Updated locally",
+                syncStatus = if (existing.remoteId == null) {
+                    SyncStatus.PendingCreate.name
+                } else {
+                    SyncStatus.PendingUpdate.name
+                },
+                pendingOperation = if (existing.remoteId == null) {
+                    PendingOperation.Create.name
+                } else {
+                    PendingOperation.Update.name
+                },
                 updatedAtMillis = clock(),
             ),
         )

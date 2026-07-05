@@ -224,6 +224,11 @@ Learning topics:
 - Pending operations.
 - User trust and visible sync state.
 
+Status:
+
+- Implemented typed sync status and pending operation metadata.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M6: Fake Remote API
 
 Learning goal:

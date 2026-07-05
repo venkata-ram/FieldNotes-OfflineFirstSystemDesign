@@ -4,5 +4,6 @@ data class FieldNote(
     val id: Long,
     val title: String,
     val body: String,
-    val localLabel: String,
+    val syncStatus: SyncStatus,
+    val pendingOperation: PendingOperation,
 )

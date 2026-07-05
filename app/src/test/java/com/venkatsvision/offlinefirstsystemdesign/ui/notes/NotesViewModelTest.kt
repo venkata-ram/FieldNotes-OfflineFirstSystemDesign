@@ -2,6 +2,8 @@ package com.venkatsvision.offlinefirstsystemdesign.ui.notes
 
 import com.venkatsvision.offlinefirstsystemdesign.MainDispatcherRule
 import com.venkatsvision.offlinefirstsystemdesign.data.FakeNotesRepository
+import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
+import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -26,7 +28,8 @@ class NotesViewModelTest {
         val state = viewModel.uiState.value
         assertEquals("Trail report", state.notes.first().title)
         assertEquals("Bridge is closed", state.notes.first().body)
-        assertEquals("Stored locally", state.notes.first().localLabel)
+        assertEquals(SyncStatus.PendingCreate, state.notes.first().syncStatus)
+        assertEquals(PendingOperation.Create, state.notes.first().pendingOperation)
         assertEquals("", state.editorTitle)
         assertEquals("", state.editorBody)
         assertFalse(state.isEditing)
@@ -45,7 +48,8 @@ class NotesViewModelTest {
         val state = viewModel.uiState.value
         assertEquals("Updated storage plan", state.notes.first().title)
         assertEquals("Room will become the source of truth", state.notes.first().body)
-        assertEquals("Updated locally", state.notes.first().localLabel)
+        assertEquals(SyncStatus.PendingUpdate, state.notes.first().syncStatus)
+        assertEquals(PendingOperation.Update, state.notes.first().pendingOperation)
         assertFalse(state.isEditing)
     }
 

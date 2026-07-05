@@ -219,7 +219,7 @@ private fun NoteListItem(note: FieldNote, onClick: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = note.localLabel,
+                text = note.syncStatus.label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
@@ -239,7 +239,8 @@ private fun FieldNotesPreview() {
                         id = 1L,
                         title = "Inspect storage before syncing",
                         body = "Offline-first screens should read from local state first.",
-                        localLabel = "Local only",
+                        syncStatus = com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus.Synced,
+                        pendingOperation = com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation.None,
                     ),
                 ),
             ),
