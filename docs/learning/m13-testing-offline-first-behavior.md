@@ -13,6 +13,8 @@ This milestone adds tests that document the expected state transitions for local
 - Tested synced note edit as `PendingUpdate`.
 - Tested sync clearing pending operations.
 - Tested local delete behavior.
+- Tested that enabling auto sync with existing pending notes queues background sync.
+- Tested conflict resolution paths including merge-both behavior.
 
 ## Why This Matters For Offline-First Design
 
@@ -22,6 +24,8 @@ Offline-first apps rely on state transitions. Bugs often happen when a record is
 - A pending update loses its remote ID.
 - A delete removes metadata before remote sync.
 - A failed sync hides user work.
+- Auto sync is enabled but old pending work never gets queued.
+- A conflict record is pushed before the user resolves it.
 
 Tests make those expectations visible.
 
@@ -90,6 +94,8 @@ flowchart TD
 - Use fakes for deterministic offline scenarios.
 - Keep emulator tests for platform integration.
 - Test pending create, pending update, sync success, and delete behavior.
+- Test auto-sync scheduling decisions separately from WorkManager OS execution.
+- Test conflict resolution state transitions as business rules.
 - Treat tests as executable documentation.
 
 ## Testing Or Verification
@@ -105,6 +111,7 @@ Result:
 - Build successful.
 - New offline-first behavior tests successful.
 - Existing ViewModel, fake API, and sync tests successful.
+- Auto-sync pending queue regression test successful.
 
 ## Junior Interview Questions
 
@@ -113,6 +120,7 @@ Result:
 3. What does deterministic mean?
 4. Why are unit tests faster than emulator tests?
 5. What does a pending create test prove?
+6. Why should a test cover enabling auto sync after a note is already pending?
 
 ## Mid-Level Interview Questions
 
@@ -121,6 +129,7 @@ Result:
 3. Why are state transition tests useful for sync?
 4. How would you test failed sync retry?
 5. Why should tests avoid real network calls?
+6. Why test scheduling intent separately from actual WorkManager execution?
 
 ## Senior Interview Questions
 
@@ -129,6 +138,7 @@ Result:
 3. What sync cases need property-based testing?
 4. How would you test conflicts across multiple clients?
 5. How would you prevent flaky offline-first tests?
+6. How would you test that a `Mutex` prevents concurrent duplicate sync pushes?
 
 ## Architect Interview Questions
 
@@ -137,4 +147,4 @@ Result:
 3. Which offline guarantees should be part of release gates?
 4. How would you test data migrations for a large user base?
 5. How would observability complement automated tests?
-
+6. Which sync invariants should never be allowed to regress?

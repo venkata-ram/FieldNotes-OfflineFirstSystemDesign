@@ -17,6 +17,7 @@ This milestone adds delete support while keeping enough local metadata to sync r
 - Fake API now supports delete.
 - Manual/background sync can push remote deletes.
 - Added delete UI.
+- Current UI asks for confirmation before deleting a note.
 - Added delete tests.
 
 ## Why This Matters For Offline-First Design
@@ -81,6 +82,10 @@ Disadvantages:
 
 Chosen approach: tombstone until sync for synced notes; immediate hard delete for never-synced local creates.
 
+Current app note:
+
+The final UI asks the user to confirm before delete. Confirmation is a UI safety step. Tombstones are the data-layer safety step. Both matter: confirmation prevents accidental user action, while tombstones prevent losing the remote ID needed for later sync.
+
 ## Simple Diagram
 
 ```mermaid
@@ -97,6 +102,7 @@ stateDiagram-v2
 - Keep delete sync in the repository/data layer.
 - Treat never-synced local records differently from synced records.
 - Test delete behavior through the same UI event path as other writes.
+- Ask for confirmation before destructive UI actions.
 
 ## Testing Or Verification
 
@@ -136,6 +142,7 @@ Result:
 3. How should delete operations be made idempotent?
 4. How would you handle undo after local delete?
 5. What cleanup policy would you use for old tombstones?
+6. Why is delete confirmation not a replacement for tombstones?
 
 ## Architect Interview Questions
 
@@ -144,4 +151,4 @@ Result:
 3. How do tombstones affect pull sync and conflict handling?
 4. What compliance or audit requirements might change delete behavior?
 5. How would delete sync work across multiple user devices?
-
+6. How would you design delete confirmation, undo, audit, and sync cleanup together?

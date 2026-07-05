@@ -27,6 +27,10 @@ The app can already accept local user input without talking to a server.
 
 Later milestones will replace the in-memory list with Room and sync states, but the screen shape will stay familiar.
 
+Current app note:
+
+The final UI evolved from this inline editor into a list-first Notes screen with a `Create local note` button, a `+` floating action button, and a dedicated editor screen. This is better for demos because long notes can grow naturally and the local source-of-truth list stays easy to scan.
+
 ## Possible Solutions
 
 ### Solution 1: Start With Database First
@@ -144,6 +148,7 @@ Manual behavior to review:
 3. What UI states are missing for a production note editor?
 4. How should validation be handled as the app grows?
 5. Why is local write feedback important in offline-first systems?
+6. Why might a dedicated editor screen be better than an inline editor for long notes?
 
 ## Architect Interview Questions
 
@@ -152,3 +157,4 @@ Manual behavior to review:
 3. Which decisions in this milestone are temporary, and which can survive into production?
 4. How would the architecture change if notes were shared across multiple devices?
 5. How would you explain the difference between temporary UI state and durable local state to a team?
+6. How should navigation decisions support offline-first workflows?

@@ -96,6 +96,10 @@ flowchart TD
 
 The screen does not know Room exists. It only sees `NotesUiState`.
 
+Current app note:
+
+The final Notes, Remote, Sync, and Learn screens all still respect the same boundary. Notes reads the local Room-backed source of truth. Remote shows the fake server copy for education, but local app state is still driven by Room.
+
 ## Key Android Best Practices
 
 - Keep Room behind a repository interface.
@@ -142,6 +146,7 @@ Result:
 3. How would you handle database migrations in production?
 4. What are risks of putting Room entities directly in UI state?
 5. How would you test repository behavior without an Android device?
+6. How should Room queries hide tombstones while still letting sync find them?
 
 ## Architect Interview Questions
 
@@ -150,4 +155,4 @@ Result:
 3. How would you design data ownership between client storage and backend services?
 4. What migration strategy would you require for a large installed user base?
 5. How would you support encrypted offline storage?
-
+6. How would you model conflict metadata and pending operations across many entities?

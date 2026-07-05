@@ -25,6 +25,10 @@ This milestone creates the map first:
 - Which tradeoffs should be explained.
 - How each milestone should be documented and committed.
 
+Current app note:
+
+The roadmap now includes post-M15 refinements: dedicated editor flow, Remote screen conflict demos, merge-both resolution, auto-sync queueing, WorkManager network constraints, delete confirmation, and `Mutex`-protected sync.
+
 ## Possible Solutions
 
 ### Solution 1: Build The Whole App First
@@ -115,6 +119,7 @@ No Gradle test was required because no app code changed.
 3. Why is conflict handling a product decision as much as a technical decision?
 4. How would you make sync logic testable?
 5. What should be logged or exposed to debug an offline-first app?
+6. Why should advanced concepts like `Mutex` and WorkManager constraints be explained in learning docs?
 
 ## Architect Interview Questions
 
@@ -123,4 +128,4 @@ No Gradle test was required because no app code changed.
 3. How would you handle idempotency for repeated mobile sync requests?
 4. What conflict resolution strategy would you choose for collaborative editing?
 5. How would your design change for millions of users and multiple devices per user?
-
+6. How would you keep architecture documentation accurate as the implementation evolves?

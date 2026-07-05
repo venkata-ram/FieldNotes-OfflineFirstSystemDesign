@@ -15,6 +15,7 @@ This milestone adds a connectivity observer and displays network status in the s
 - Displayed `Online` or `Offline` in the sync panel.
 - Manual sync is disabled while offline.
 - If an offline sync event reaches the ViewModel, it leaves pending writes untouched and shows an offline message.
+- WorkManager background sync uses `NetworkType.CONNECTED`, so queued sync waits for network instead of running on a timer.
 
 ## Why This Matters For Offline-First Design
 
@@ -80,6 +81,8 @@ Important implementation note:
 
 Manual sync uses the connectivity hint to avoid a misleading educational result. Without this guard, the in-memory fake API can still "sync" while the device is offline because it is not a real network service.
 
+Background sync uses a different mechanism. The app schedules one-time WorkManager work, and WorkManager waits until the `CONNECTED` network constraint is true. This is not a periodic "run every N minutes" design. Android still controls the exact execution time after constraints are met.
+
 ## Simple Diagram
 
 ```mermaid
@@ -87,6 +90,8 @@ flowchart TD
     OS["Android connectivity"] --> Observer["ConnectivityObserver"]
     Observer --> UI["Sync panel"]
     UI --> User["User sees Online or Offline"]
+    Work["Queued WorkManager sync"] --> Constraint["Requires NetworkType.CONNECTED"]
+    Constraint --> Repo["Repository sync"]
     Repo["Repository sync"] --> API["Fake API"]
     API --> Repo
 ```
@@ -100,6 +105,8 @@ Connectivity informs the UI. Repository sync still handles real success or failu
 - Treat network state as advisory.
 - Keep connectivity display outside persistence logic.
 - Continue handling sync exceptions.
+- Use WorkManager network constraints for deferred background sync.
+- Explain to users that queued sync may run after network returns, not necessarily instantly.
 
 ## Testing Or Verification
 
@@ -122,6 +129,7 @@ Result:
 3. What permission is needed to read network state?
 4. Why is connectivity only a hint?
 5. What should happen if sync fails while online?
+6. Does WorkManager auto sync run on a timer in this app?
 
 ## Mid-Level Interview Questions
 
@@ -130,6 +138,7 @@ Result:
 3. How does WorkManager use network constraints?
 4. Why should connectivity not decide local data visibility?
 5. Where should connectivity state live in this app?
+6. What is the difference between a connectivity observer and a WorkManager constraint?
 
 ## Senior Interview Questions
 
@@ -138,6 +147,7 @@ Result:
 3. How should UI copy explain offline status?
 4. How would you design connectivity for multi-network devices?
 5. How would you avoid over-triggering sync on network changes?
+6. Why is WorkManager not an exact network-change event listener?
 
 ## Architect Interview Questions
 
@@ -146,3 +156,4 @@ Result:
 3. How would backend health influence mobile sync decisions?
 4. How would you design observability for network-related sync failures?
 5. How would the strategy change for critical workflows?
+6. How would you combine push notifications, WorkManager, and manual sync for enterprise offline apps?

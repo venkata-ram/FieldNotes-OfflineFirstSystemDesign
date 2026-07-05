@@ -6,6 +6,8 @@ Make sync behavior easier to inspect while learning.
 
 This milestone adds a small debug sync log that records local writes, sync attempts, pulls, conflicts, and deletes.
 
+Recent polish also makes the log useful for advanced demos: it can show when sync is skipped because another sync is already running, when a remote copy is edited, and when conflict resolution creates a pending merged note.
+
 ## What Changed
 
 - Added `syncLog` to `NotesRepository`.
@@ -14,6 +16,7 @@ This milestone adds a small debug sync log that records local writes, sync attem
 - Added log collection in `NotesViewModel`.
 - Added a compact `Debug sync log` panel in the UI.
 - Added a unit test for log behavior.
+- Current implementation logs important advanced events such as concurrent sync skip, remote edit, conflict resolution, and sync completion.
 
 ## Why This Matters For Offline-First Design
 
@@ -24,6 +27,8 @@ Offline-first bugs can be hard to understand because work happens across time:
 - Retry may happen after failure.
 - Pull may happen after push.
 - Conflicts can appear after remote changes.
+- A `Mutex` may skip a duplicate sync request while one sync is already running.
+- WorkManager may run later after network becomes available.
 
 A debug log makes the flow visible.
 
@@ -91,6 +96,8 @@ flowchart TD
 - Limit log size.
 - Do not log sensitive user data in production.
 - Use observability to support tests and manual review.
+- Log concurrency decisions in simple words, such as "another sync is already running".
+- Keep demo logs understandable for learners.
 
 ## Testing Or Verification
 
@@ -113,6 +120,7 @@ Result:
 3. What is a debug log?
 4. Why limit the number of log entries?
 5. Why should sensitive data not be logged?
+6. What log message would help explain a skipped sync?
 
 ## Mid-Level Interview Questions
 
@@ -121,6 +129,7 @@ Result:
 3. Why keep logs out of Room in this demo?
 4. How can logs help test failures?
 5. When should debug UI be hidden?
+6. How can logs help explain WorkManager waiting for network?
 
 ## Senior Interview Questions
 
@@ -129,6 +138,7 @@ Result:
 3. How would you sample high-volume sync telemetry?
 4. How would you debug a partial sync failure?
 5. What privacy risks exist in observability?
+6. What telemetry would prove the `Mutex` is preventing duplicate sync work?
 
 ## Architect Interview Questions
 
@@ -137,4 +147,4 @@ Result:
 3. Which sync SLOs would you define?
 4. How would support teams diagnose stuck pending operations?
 5. How would observability influence backend API design?
-
+6. How would you detect a fleet-wide problem where WorkManager jobs are queued but not completing?

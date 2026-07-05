@@ -14,8 +14,9 @@ This milestone adds WorkManager so local writes can request background sync when
 - Added network constraint for background sync.
 - Added exponential backoff.
 - Local saves now enqueue one-time background sync.
+- Turning on auto sync now queues existing syncable pending notes.
 - Manual sync still exists.
-- Added a unit test proving local save schedules background sync.
+- Added unit tests proving local save and enabling auto sync schedule background sync.
 
 ## Why This Matters For Offline-First Design
 
@@ -29,6 +30,8 @@ WorkManager helps because it can:
 - Survive process death better than a plain coroutine.
 
 The important design choice: WorkManager calls the same repository `syncNow()` method as manual sync.
+
+This app uses one-time constrained work, not periodic work. That means auto sync is triggered by app events, such as saving a note or enabling auto sync with pending work. WorkManager then waits until the network constraint is satisfied.
 
 ## Possible Solutions
 
@@ -81,13 +84,30 @@ Disadvantages:
 
 Chosen approach: WorkManager.
 
+## Current Auto Sync Behavior
+
+Auto sync in this demo means:
+
+1. A local write is saved to Room.
+2. The ViewModel asks `NotesSyncScheduler` to enqueue one-time work.
+3. WorkManager keeps only one unique sync job with `ExistingWorkPolicy.KEEP`.
+4. The job requires `NetworkType.CONNECTED`.
+5. If the phone is offline, Android waits until the constraint is met.
+6. `NotesSyncWorker` calls `NotesRepository.syncNow()`.
+
+When the user turns auto sync on, the ViewModel also checks for existing pending notes. If syncable pending notes already exist, it queues work immediately.
+
+Conflict notes are different. They are not syncable until the user resolves the conflict, because pushing them automatically could hide a product decision.
+
 ## Simple Diagram
 
 ```mermaid
 flowchart TD
     Save["User saves note locally"] --> DB["Room pending note"]
     Save --> Scheduler["NotesSyncScheduler"]
+    Toggle["User enables auto sync"] --> Scheduler
     Scheduler --> WM["WorkManager"]
+    Network["Network connected constraint"] --> WM
     WM --> Worker["NotesSyncWorker"]
     Worker --> Repo["NotesRepository.syncNow()"]
     Repo --> DB
@@ -102,6 +122,7 @@ flowchart TD
 - Keep worker code small.
 - Reuse repository sync logic instead of duplicating sync inside the worker.
 - Use unique work to avoid stacking duplicate sync jobs.
+- Do not treat WorkManager as an instant network-change callback. Android decides exactly when eligible work runs.
 
 ## Testing Or Verification
 
@@ -124,6 +145,7 @@ Result:
 3. What does a network constraint mean?
 4. What is retry?
 5. Why should local save happen before background sync?
+6. Is this app's auto sync time based or network-constraint based?
 
 ## Mid-Level Interview Questions
 
@@ -132,6 +154,7 @@ Result:
 3. Why should the worker call repository sync instead of owning sync logic?
 4. When is WorkManager not the right tool?
 5. What happens if network is unavailable when work is scheduled?
+6. Why should enabling auto sync queue existing pending work?
 
 ## Senior Interview Questions
 
@@ -140,6 +163,7 @@ Result:
 3. What are the risks of scheduling sync after every local write?
 4. How would you batch pending operations?
 5. How would worker retry interact with server-side idempotency?
+6. Why should conflict records wait for user resolution before auto sync?
 
 ## Architect Interview Questions
 
@@ -148,4 +172,4 @@ Result:
 3. How would you coordinate sync across multiple app modules?
 4. How would you monitor background sync success in production?
 5. How would platform limits change your sync strategy?
-
+6. When would you choose periodic sync instead of event-triggered one-time sync?

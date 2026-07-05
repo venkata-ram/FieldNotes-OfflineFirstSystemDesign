@@ -28,6 +28,10 @@ If two copies change independently, blindly overwriting one version can cause da
 
 Conflict detection is the first safety step. Resolution comes next.
 
+Current app note:
+
+The final app has a simple Remote screen that shows fake server records. During a demo, edit the remote copy there, then edit the local copy in Notes, then run sync. This creates a clear conflict scenario without hidden logs or developer-only actions.
+
 ## Possible Solutions
 
 ### Solution 1: Last Write Wins
@@ -93,6 +97,7 @@ flowchart TD
 - Keep conflict detection in the repository/sync layer.
 - Make conflict scenarios repeatable for education and testing with visible local and remote copies.
 - Keep conflict resolution separate from conflict detection.
+- Do not auto-sync conflicted records until the user resolves them.
 
 ## Testing Or Verification
 
@@ -130,6 +135,7 @@ Result:
 3. How would you handle conflicts for structured fields versus free text?
 4. How should sync behave after a note enters conflict state?
 5. What tests would prove conflict detection is correct?
+6. Why should auto sync skip unresolved conflict records?
 
 ## Architect Interview Questions
 
@@ -138,3 +144,4 @@ Result:
 3. How would you design conflict detection across multiple devices?
 4. What data types need CRDTs or operational transforms?
 5. How do product requirements shape conflict strategy?
+6. How would you make conflict demos understandable for non-technical stakeholders?

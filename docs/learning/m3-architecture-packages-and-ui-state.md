@@ -94,6 +94,10 @@ flowchart TD
 
 Later milestones will insert a repository under the ViewModel.
 
+Current app note:
+
+The final UI has multiple visible sections and a hidden editor destination, but the same unidirectional flow remains: Compose renders `NotesUiState`, sends `NotesUiEvent`, and the ViewModel coordinates repository calls.
+
 ## Key Android Best Practices
 
 - Keep Activity small and focused on app startup.
@@ -140,6 +144,7 @@ Expected coverage:
 3. How will this ViewModel change when Room becomes the source of truth?
 4. What state should be saved across process death?
 5. How would you structure UI events for a more complex editor?
+6. Why should navigation between list and editor still use explicit UI events?
 
 ## Architect Interview Questions
 
@@ -148,4 +153,4 @@ Expected coverage:
 3. How would this architecture support multiple screens reading the same local data?
 4. What is the difference between screen state, domain state, and persisted state?
 5. How would you enforce architecture boundaries across a large Android team?
-
+6. How would you prevent a multi-screen Compose feature from leaking sync logic into UI code?

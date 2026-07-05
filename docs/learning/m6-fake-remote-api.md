@@ -95,6 +95,10 @@ flowchart TD
 
 M7 will connect Room and this fake API through manual sync.
 
+Current app note:
+
+The final demo exposes fake remote records in the Remote screen. This is not a production pattern where users normally edit server state directly. It is an educational tool that makes conflict scenarios visible and repeatable.
+
 ## Key Android Best Practices
 
 - Depend on an interface, not a concrete fake.
@@ -140,6 +144,7 @@ Result:
 3. Which sync bugs can be caught with a fake API?
 4. Which sync bugs require real networking tests?
 5. How should fake failures be designed for useful tests?
+6. Why is an editable fake remote useful for teaching conflict detection?
 
 ## Architect Interview Questions
 
@@ -148,3 +153,4 @@ Result:
 3. What backend guarantees does offline sync need?
 4. How would you version remote DTOs over time?
 5. How would you design contract tests between mobile and backend teams?
+6. How would you keep educational fake behavior from leaking into production architecture?

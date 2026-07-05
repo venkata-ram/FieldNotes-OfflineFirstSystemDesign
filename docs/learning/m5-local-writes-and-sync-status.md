@@ -30,6 +30,10 @@ The pattern is:
 
 Without sync status, users cannot tell whether their data is safely stored, waiting to sync, or failed.
 
+Current app note:
+
+The final Notes screen shows the local database list as the main surface. Create and edit happen on a separate editor screen, but the status labels still come from the same typed `SyncStatus` and `PendingOperation` model.
+
 ## Possible Solutions
 
 ### Solution 1: Hide Sync State
@@ -138,6 +142,7 @@ Result:
 3. What happens if the app crashes after a local write but before sync?
 4. How would you model pending updates for partially synced records?
 5. How would you test sync status transitions?
+6. How should status labels behave while auto sync is queued but not finished?
 
 ## Architect Interview Questions
 
@@ -146,4 +151,4 @@ Result:
 3. How would you handle multiple edits before the first sync succeeds?
 4. How would the model change for collaborative multi-device editing?
 5. What user experience principles should guide visible sync status?
-
+6. How would you design sync status for a multi-entity app with notes, attachments, and comments?

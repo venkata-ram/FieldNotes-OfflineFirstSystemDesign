@@ -275,6 +275,7 @@ Learning topics:
 Status:
 
 - Implemented manual push/pull sync through Room and the fake API.
+- Repository sync is protected with a Kotlin `Mutex` so manual sync and background sync cannot push the same pending operation at the same time.
 - Verified with `./gradlew testDebugUnitTest`.
 
 ### M8: Background Sync With WorkManager
@@ -300,6 +301,8 @@ Learning topics:
 Status:
 
 - Implemented one-time constrained WorkManager sync scheduling after local saves.
+- Auto sync now also queues existing syncable pending notes when the user turns it on.
+- WorkManager sync is network-constraint based, not periodic/time based.
 - Verified with `./gradlew testDebugUnitTest`.
 
 ### M9: Delete And Tombstones
@@ -348,6 +351,7 @@ Learning topics:
 Status:
 
 - Implemented timestamp-based conflict detection with local conflict metadata.
+- Added a visible Remote screen so demos can edit the fake server copy directly.
 - Verified with `./gradlew testDebugUnitTest`.
 
 ### M11: Conflict Resolution UI
@@ -370,7 +374,8 @@ Learning topics:
 
 Status:
 
-- Implemented keep-local and use-remote conflict resolution controls.
+- Implemented keep-local, use-remote, and merge-both conflict resolution controls.
+- Merge both combines local and remote text into one local pending update, then pushes that merged note on the next sync.
 - Verified with `./gradlew testDebugUnitTest`.
 
 ### M12: Connectivity Awareness
@@ -466,7 +471,34 @@ Learning topics:
 Status:
 
 - Completed final README and architecture review.
+- Added later UI polish: notes list with floating action button, dedicated create/edit screen, adaptive long-note layout, delete confirmation, stronger sync CTA, multi-screen tabs, and architecture learning updates.
 - Verified with `./gradlew testDebugUnitTest`.
+
+### Post-M15: Demo Polish And Advanced Sync Notes
+
+Learning goal:
+
+- Keep the app demo-ready while explaining advanced offline-first concepts in simple English.
+
+Implemented refinements:
+
+- Notes screen became list-first, with a `+` floating action button and dedicated editor screen.
+- Note cards and text fields now adapt to short and long content.
+- Delete asks for confirmation before changing local state.
+- Remote notes can be edited directly from the Remote screen for conflict demos.
+- Merge-both conflict resolution was added as the preferred demo path.
+- Auto sync queues existing syncable pending notes when enabled.
+- WorkManager remains one-time constrained work with `NetworkType.CONNECTED`; it is not a periodic timer.
+- Repository sync uses a `Mutex` to serialize sync calls from manual sync and WorkManager.
+
+Advanced concepts to review:
+
+- `Mutex` for sync serialization.
+- WorkManager unique one-time work.
+- Network constraints instead of polling.
+- Tombstones for safe offline delete.
+- Conflict metadata for durable resolution.
+- Local source of truth with Room and Flow.
 
 ## Final Status
 

@@ -19,7 +19,7 @@ This is the first milestone where local Room data and remote fake API data excha
 - Sync now pulls remote notes back into Room.
 - Successful sync marks notes as `Synced`.
 - Failed push attempts mark notes as `Failed`.
-- Repository sync is serialized so manual sync and background sync cannot process the same pending operation at the same time.
+- Repository sync is serialized with a Kotlin `Mutex` so manual sync and background sync cannot process the same pending operation at the same time.
 
 ## Why This Matters For Offline-First Design
 
@@ -81,6 +81,30 @@ Disadvantages:
 
 Chosen approach: push pending local changes first, then pull remote notes.
 
+## Advanced Concept: Why The Repository Uses `Mutex`
+
+A `Mutex` is like a small lock for coroutines.
+
+In this app, both paths can call `syncNow()`:
+
+- The user taps manual sync.
+- WorkManager runs background sync.
+
+If both sync loops ran at the same time, they could read the same pending note and both try to push it. That can create duplicate remote records, confusing sync logs, or incorrect local status updates.
+
+The repository uses `syncMutex.withLock { ... }` so only one sync loop runs at a time. If another sync is already running, the app skips the duplicate request and logs that sync was already in progress.
+
+Advantages:
+
+- Prevents duplicate pushes.
+- Keeps sync state easier to reason about.
+- Makes manual sync and background sync share one safe code path.
+
+Disadvantages:
+
+- Sync work becomes single-file, so very large sync queues may need batching later.
+- Developers must avoid doing unrelated long work while holding the lock.
+
 ## Simple Diagram
 
 ```mermaid
@@ -109,7 +133,7 @@ sequenceDiagram
 - Keep UI reading local state, not remote state.
 - Store remote IDs locally after successful create.
 - Treat sync as a repository/data-layer concern.
-- Protect the sync loop from concurrent manual/background execution.
+- Protect the sync loop from concurrent manual/background execution with a coroutine `Mutex`.
 - Surface sync result to the user.
 - Keep failure states visible.
 
@@ -142,6 +166,7 @@ Result:
 3. Why should failed sync keep the local note?
 4. What is idempotency?
 5. Why does sync return a result object?
+6. What problem does a `Mutex` solve in this sync loop?
 
 ## Senior Interview Questions
 
@@ -150,6 +175,7 @@ Result:
 3. What race conditions can happen during manual sync?
 4. How should sync behave if the user edits a note while sync is running?
 5. What repository tests would you add around push and pull?
+6. When can a `Mutex` become a bottleneck in a larger sync system?
 
 ## Architect Interview Questions
 
@@ -158,3 +184,4 @@ Result:
 3. How would you handle partial sync failure?
 4. What observability would you require for production sync?
 5. How would you explain push, pull, and merge to a product team?
+6. How would you coordinate sync locks across multiple processes or devices?
