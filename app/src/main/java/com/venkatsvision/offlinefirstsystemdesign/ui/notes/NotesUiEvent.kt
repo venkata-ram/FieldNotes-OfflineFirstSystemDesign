@@ -5,7 +5,6 @@ sealed interface NotesUiEvent {
     data class BodyChanged(val body: String) : NotesUiEvent
     data class EditNote(val noteId: Long) : NotesUiEvent
     data class DeleteNote(val noteId: Long) : NotesUiEvent
-    data class SimulateRemoteEdit(val noteId: Long) : NotesUiEvent
     data class KeepLocalConflict(val noteId: Long) : NotesUiEvent
     data class UseRemoteConflict(val noteId: Long) : NotesUiEvent
     data class EditRemoteNote(val remoteId: String) : NotesUiEvent

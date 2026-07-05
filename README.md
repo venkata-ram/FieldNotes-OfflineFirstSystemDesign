@@ -47,10 +47,11 @@ The UI observes local state. Sync updates local state.
 4. See it become `Synced`.
 5. Edit the note.
 6. See it become `Pending update`.
-7. Tap `Simulate remote edit`.
-8. Tap `Sync now` and review conflict behavior.
-9. Choose `Keep local` or `Use remote`.
-10. Delete a synced note and observe tombstone-driven sync behavior.
+7. Open `Remote` and edit the fake server copy.
+8. Open `Notes`, edit the same local note differently, and save.
+9. Open `Sync`, tap `Sync pending changes`, and review conflict behavior.
+10. Choose `Keep local` or `Use remote`.
+11. Delete a synced note and observe tombstone-driven sync behavior.
 
 ## Milestone Docs
 
@@ -97,4 +98,3 @@ m13 add offline first behavior tests
 m14 add sync debug log
 m15 final polish and architecture review
 ```
-

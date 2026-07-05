@@ -207,19 +207,6 @@ class NotesViewModelTest {
     }
 
     @Test
-    fun simulateRemoteEdit_updatesDemoInstructionMessage() = runTest {
-        val viewModel = NotesViewModel(FakeNotesRepository())
-        val noteId = viewModel.uiState.value.notes.first().id
-
-        viewModel.onEvent(NotesUiEvent.SimulateRemoteEdit(noteId))
-
-        assertEquals(
-            "Remote edit staged. Now edit this same note locally, save, then sync.",
-            viewModel.uiState.value.lastSyncMessage,
-        )
-    }
-
-    @Test
     fun saveRemoteNote_updatesRemoteCopyAndShowsDemoMessage() = runTest {
         val viewModel = NotesViewModel(FakeNotesRepository())
         val remoteId = viewModel.uiState.value.remoteNotes.first().remoteId

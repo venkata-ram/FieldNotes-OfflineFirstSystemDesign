@@ -88,18 +88,6 @@ class RoomNotesRepository(
         log("Saved local update: $title")
     }
 
-    override suspend fun simulateRemoteEdit(noteId: Long) {
-        val existing = noteDao.getNote(noteId) ?: return
-        val remoteId = existing.remoteId ?: return
-        notesApi.updateNote(
-            remoteId = remoteId,
-            title = "${existing.title} (remote)",
-            body = "${existing.body}\nRemote edit created for conflict practice.",
-            updatedAtMillis = clock() + 3_600_000,
-        )
-        log("Simulated remote edit for note $noteId")
-    }
-
     override suspend fun updateRemoteNote(remoteId: String, title: String, body: String) {
         notesApi.updateNote(
             remoteId = remoteId,

@@ -11,7 +11,6 @@ interface NotesRepository {
     suspend fun createNote(title: String, body: String)
     suspend fun updateNote(noteId: Long, title: String, body: String)
     suspend fun deleteNote(noteId: Long)
-    suspend fun simulateRemoteEdit(noteId: Long)
     suspend fun updateRemoteNote(remoteId: String, title: String, body: String)
     suspend fun resolveConflict(noteId: Long, resolution: ConflictResolution)
     suspend fun syncNow(): SyncResult

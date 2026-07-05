@@ -12,8 +12,7 @@ This milestone marks a note as `Conflict detected` instead of silently overwriti
 - Added remote ID to the domain model.
 - Added conflict title/body fields.
 - Added conflict metadata to Room.
-- Added a `simulateRemoteEdit()` repository action for education.
-- Added a UI action to simulate remote edits.
+- Added a visible Remote screen so the fake server copy can be edited directly.
 - Sync now checks the remote version before pushing a local update.
 - If remote is newer than the local pending update, the local note becomes a conflict.
 
@@ -92,7 +91,7 @@ flowchart TD
 - Never silently overwrite data when conflict is possible.
 - Store conflict metadata locally so it survives process death.
 - Keep conflict detection in the repository/sync layer.
-- Make conflict scenarios repeatable for education and testing.
+- Make conflict scenarios repeatable for education and testing with visible local and remote copies.
 - Keep conflict resolution separate from conflict detection.
 
 ## Testing Or Verification
@@ -139,4 +138,3 @@ Result:
 3. How would you design conflict detection across multiple devices?
 4. What data types need CRDTs or operational transforms?
 5. How do product requirements shape conflict strategy?
-

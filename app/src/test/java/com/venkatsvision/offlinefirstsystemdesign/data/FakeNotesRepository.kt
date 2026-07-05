@@ -103,8 +103,6 @@ class FakeNotesRepository(
         log("Deleted fake local note $noteId")
     }
 
-    override suspend fun simulateRemoteEdit(noteId: Long) = Unit
-
     override suspend fun updateRemoteNote(remoteId: String, title: String, body: String) {
         remoteNotesFlow.update { remoteNotes ->
             remoteNotes.map { note ->
