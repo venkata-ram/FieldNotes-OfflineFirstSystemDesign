@@ -134,6 +134,12 @@ private fun androidx.compose.foundation.lazy.LazyListScope.notesScreenContent(
     uiState: NotesUiState,
     onEvent: (NotesUiEvent) -> Unit,
 ) {
+    if (uiState.lastSyncMessage.startsWith("Remote edit staged")) {
+        item {
+            DemoInstructionCard(message = uiState.lastSyncMessage)
+        }
+    }
+
     item {
         SectionTitle(
             title = "Capture",
@@ -274,6 +280,33 @@ private fun AutoSyncPanel(
             Switch(
                 checked = enabled,
                 onCheckedChange = onEnabledChange,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DemoInstructionCard(message: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFFFFF0C7),
+        border = BorderStroke(1.dp, Color(0xFFE3C15A)),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "Conflict demo is ready",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF715000),
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF715000),
             )
         }
     }

@@ -205,4 +205,17 @@ class NotesViewModelTest {
         assertEquals(PendingOperation.None, note.pendingOperation)
         assertEquals(null, note.conflictTitle)
     }
+
+    @Test
+    fun simulateRemoteEdit_updatesDemoInstructionMessage() = runTest {
+        val viewModel = NotesViewModel(FakeNotesRepository())
+        val noteId = viewModel.uiState.value.notes.first().id
+
+        viewModel.onEvent(NotesUiEvent.SimulateRemoteEdit(noteId))
+
+        assertEquals(
+            "Remote edit staged. Now edit this same note locally, save, then sync.",
+            viewModel.uiState.value.lastSyncMessage,
+        )
+    }
 }

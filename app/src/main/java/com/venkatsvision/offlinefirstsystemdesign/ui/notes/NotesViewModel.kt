@@ -127,7 +127,7 @@ class NotesViewModel(
         viewModelScope.launch {
             notesRepository.simulateRemoteEdit(noteId)
             _uiState.update { current ->
-                current.copy(lastSyncMessage = "Remote edit simulated. Edit locally, then sync to see conflict detection.")
+                current.copy(lastSyncMessage = "Remote edit staged. Now edit this same note locally, save, then sync.")
             }
         }
     }

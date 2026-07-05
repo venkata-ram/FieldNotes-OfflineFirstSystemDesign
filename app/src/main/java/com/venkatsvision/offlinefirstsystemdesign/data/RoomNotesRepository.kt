@@ -90,7 +90,7 @@ class RoomNotesRepository(
             remoteId = remoteId,
             title = "${existing.title} (remote)",
             body = "${existing.body}\nRemote edit created for conflict practice.",
-            updatedAtMillis = clock() + 10_000,
+            updatedAtMillis = clock() + 3_600_000,
         )
         log("Simulated remote edit for note $noteId")
     }
