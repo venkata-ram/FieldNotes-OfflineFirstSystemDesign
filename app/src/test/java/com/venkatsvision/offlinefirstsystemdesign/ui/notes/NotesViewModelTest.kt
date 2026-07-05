@@ -103,7 +103,7 @@ class NotesViewModelTest {
     }
 
     @Test
-    fun saveNote_schedulesBackgroundSync() = runTest {
+    fun saveNote_withAutoSyncDisabled_doesNotScheduleBackgroundSync() = runTest {
         var scheduleCount = 0
         val viewModel = NotesViewModel(
             notesRepository = FakeNotesRepository(),
@@ -113,11 +113,26 @@ class NotesViewModelTest {
         viewModel.onEvent(NotesUiEvent.TitleChanged("Needs background sync"))
         viewModel.onEvent(NotesUiEvent.SaveNote)
 
+        assertEquals(0, scheduleCount)
+    }
+
+    @Test
+    fun saveNote_withAutoSyncEnabled_schedulesBackgroundSync() = runTest {
+        var scheduleCount = 0
+        val viewModel = NotesViewModel(
+            notesRepository = FakeNotesRepository(),
+            scheduleBackgroundSync = { scheduleCount += 1 },
+        )
+
+        viewModel.onEvent(NotesUiEvent.AutoBackgroundSyncChanged(enabled = true))
+        viewModel.onEvent(NotesUiEvent.TitleChanged("Needs background sync"))
+        viewModel.onEvent(NotesUiEvent.SaveNote)
+
         assertEquals(1, scheduleCount)
     }
 
     @Test
-    fun deleteNote_removesNoteAndSchedulesBackgroundSync() = runTest {
+    fun deleteNote_removesNoteWithoutSchedulingWhenAutoSyncDisabled() = runTest {
         var scheduleCount = 0
         val viewModel = NotesViewModel(
             notesRepository = FakeNotesRepository(),
@@ -128,7 +143,7 @@ class NotesViewModelTest {
         viewModel.onEvent(NotesUiEvent.DeleteNote(noteId))
 
         assertEquals(emptyList<FieldNote>(), viewModel.uiState.value.notes)
-        assertEquals(1, scheduleCount)
+        assertEquals(0, scheduleCount)
     }
 
     @Test
@@ -152,6 +167,7 @@ class NotesViewModelTest {
             scheduleBackgroundSync = { scheduleCount += 1 },
         )
 
+        viewModel.onEvent(NotesUiEvent.AutoBackgroundSyncChanged(enabled = true))
         viewModel.onEvent(NotesUiEvent.KeepLocalConflict(1L))
 
         val note = viewModel.uiState.value.notes.first()

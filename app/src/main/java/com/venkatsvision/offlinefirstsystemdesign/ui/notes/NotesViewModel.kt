@@ -47,6 +47,7 @@ class NotesViewModel(
             is NotesUiEvent.SimulateRemoteEdit -> simulateRemoteEdit(event.noteId)
             is NotesUiEvent.KeepLocalConflict -> resolveConflict(event.noteId, ConflictResolution.KeepLocal)
             is NotesUiEvent.UseRemoteConflict -> resolveConflict(event.noteId, ConflictResolution.UseRemote)
+            is NotesUiEvent.AutoBackgroundSyncChanged -> setAutoBackgroundSync(event.enabled)
             NotesUiEvent.ClearEditor -> clearEditor()
             NotesUiEvent.SaveNote -> saveNote()
             is NotesUiEvent.SyncNow -> syncNow(event.isOnline)
@@ -96,7 +97,7 @@ class NotesViewModel(
         if (current.editingNoteId == null) {
             viewModelScope.launch {
                 notesRepository.createNote(title = title, body = cleanBody)
-                scheduleBackgroundSync()
+                scheduleBackgroundSyncIfEnabled()
             }
         } else {
             viewModelScope.launch {
@@ -105,7 +106,7 @@ class NotesViewModel(
                     title = title,
                     body = cleanBody,
                 )
-                scheduleBackgroundSync()
+                scheduleBackgroundSyncIfEnabled()
             }
         }
 
@@ -115,7 +116,7 @@ class NotesViewModel(
     private fun deleteNote(noteId: Long) {
         viewModelScope.launch {
             notesRepository.deleteNote(noteId)
-            scheduleBackgroundSync()
+            scheduleBackgroundSyncIfEnabled()
         }
         if (_uiState.value.editingNoteId == noteId) {
             clearEditor()
@@ -135,8 +136,27 @@ class NotesViewModel(
         viewModelScope.launch {
             notesRepository.resolveConflict(noteId, resolution)
             if (resolution == ConflictResolution.KeepLocal) {
-                scheduleBackgroundSync()
+                scheduleBackgroundSyncIfEnabled()
             }
+        }
+    }
+
+    private fun setAutoBackgroundSync(enabled: Boolean) {
+        _uiState.update { current ->
+            current.copy(
+                autoBackgroundSyncEnabled = enabled,
+                lastSyncMessage = if (enabled) {
+                    "Auto background sync enabled."
+                } else {
+                    "Auto background sync paused for manual demo control."
+                },
+            )
+        }
+    }
+
+    private fun scheduleBackgroundSyncIfEnabled() {
+        if (_uiState.value.autoBackgroundSyncEnabled) {
+            scheduleBackgroundSync()
         }
     }
 

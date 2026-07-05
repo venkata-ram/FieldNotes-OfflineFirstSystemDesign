@@ -8,6 +8,7 @@ data class NotesUiState(
     val editorTitle: String = "",
     val editorBody: String = "",
     val isSyncing: Boolean = false,
+    val autoBackgroundSyncEnabled: Boolean = false,
     val lastSyncMessage: String = "Not synced in this session",
     val syncLog: List<String> = emptyList(),
 ) {

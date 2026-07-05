@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -192,6 +193,12 @@ private fun androidx.compose.foundation.lazy.LazyListScope.syncScreenContent(
         SyncStatsGrid(notes = uiState.notes)
     }
     item {
+        AutoSyncPanel(
+            enabled = uiState.autoBackgroundSyncEnabled,
+            onEnabledChange = { onEvent(NotesUiEvent.AutoBackgroundSyncChanged(it)) },
+        )
+    }
+    item {
         SectionTitle(
             title = "Sync trace",
             subtitle = "Recent repository events",
@@ -224,6 +231,51 @@ private fun androidx.compose.foundation.lazy.LazyListScope.learnScreenContent() 
             title = "4. Conflicts are explicit",
             body = "When local and remote versions diverge, the app marks a conflict instead of silently overwriting data.",
         )
+    }
+}
+
+@Composable
+private fun AutoSyncPanel(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "Auto background sync",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = if (enabled) {
+                        "WorkManager can sync after local writes."
+                    } else {
+                        "Paused so manual demos and conflicts are easy to control."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = enabled,
+                onCheckedChange = onEnabledChange,
+            )
+        }
     }
 }
 

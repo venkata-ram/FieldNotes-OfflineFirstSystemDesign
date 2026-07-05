@@ -8,6 +8,7 @@ sealed interface NotesUiEvent {
     data class SimulateRemoteEdit(val noteId: Long) : NotesUiEvent
     data class KeepLocalConflict(val noteId: Long) : NotesUiEvent
     data class UseRemoteConflict(val noteId: Long) : NotesUiEvent
+    data class AutoBackgroundSyncChanged(val enabled: Boolean) : NotesUiEvent
     data object ClearEditor : NotesUiEvent
     data object SaveNote : NotesUiEvent
     data class SyncNow(val isOnline: Boolean) : NotesUiEvent
