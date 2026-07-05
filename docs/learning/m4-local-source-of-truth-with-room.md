@@ -13,7 +13,7 @@ Before this milestone, notes lived in memory. Now the UI observes notes that com
 - Added `RoomNotesRepository`.
 - Added `NotesRepository` as the boundary between UI logic and data.
 - Updated `NotesViewModel` to observe repository data instead of owning the note list.
-- Added a small `AppContainer` to create the database and repository.
+- Added a small `AppContainer` to create the database and repository. This was later replaced by Hilt in M16.
 - Updated tests to use a fake repository.
 
 ## Why This Matters For Offline-First Design

@@ -1,6 +1,5 @@
 package com.venkatsvision.offlinefirstsystemdesign.data.sync
 
-import android.content.Context
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -8,13 +7,12 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
-class NotesSyncScheduler(
-    context: Context,
-) {
-    private val workManager = WorkManager.getInstance(context.applicationContext)
-
-    fun enqueueOneTimeSync() {
+class NotesSyncScheduler @Inject constructor(
+    private val workManager: WorkManager,
+) : SyncScheduler {
+    override fun enqueueOneTimeSync() {
         val request = OneTimeWorkRequestBuilder<NotesSyncWorker>()
             .setConstraints(
                 Constraints.Builder()

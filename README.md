@@ -2,11 +2,12 @@
 
 Educational Android demo app for learning offline-first system design.
 
-The app is a small Field Notes tool built with Kotlin, Jetpack Compose, Room, Flow, WorkManager, and a fake remote API. It is intentionally implemented through micro milestones so each architectural idea can be reviewed in Git history and in `docs/learning/`.
+The app is a small Field Notes tool built with Kotlin, Jetpack Compose, Room, Flow, WorkManager, Hilt, and a fake remote API. It is intentionally implemented through micro milestones so each architectural idea can be reviewed in Git history and in `docs/learning/`.
 
 ## What The App Demonstrates
 
 - Local database as the source of truth.
+- Hilt dependency injection instead of a manual app container.
 - Local writes before network sync.
 - Visible sync status.
 - Pending create, update, and delete operations.
@@ -29,6 +30,9 @@ The app is a small Field Notes tool built with Kotlin, Jetpack Compose, Room, Fl
 ```mermaid
 flowchart TD
     UI["Compose UI"] --> VM["NotesViewModel"]
+    Hilt["Hilt DI"] --> VM
+    Hilt --> Repo
+    Hilt --> Work
     VM --> Repo["NotesRepository"]
     Repo --> DB["Room Database"]
     Repo --> API["FakeNotesApi"]
@@ -119,4 +123,5 @@ m13 add offline first behavior tests
 m14 add sync debug log
 m15 final polish and architecture review
 post-m15 polish: dedicated editor flow, merge-both conflict resolution, auto-sync pending queue, delete confirmation
+m16 replace manual dependency container with Hilt
 ```

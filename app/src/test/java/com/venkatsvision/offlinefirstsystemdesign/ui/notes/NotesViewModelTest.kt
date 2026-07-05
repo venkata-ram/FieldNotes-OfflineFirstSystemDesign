@@ -2,6 +2,7 @@ package com.venkatsvision.offlinefirstsystemdesign.ui.notes
 
 import com.venkatsvision.offlinefirstsystemdesign.MainDispatcherRule
 import com.venkatsvision.offlinefirstsystemdesign.data.FakeNotesRepository
+import com.venkatsvision.offlinefirstsystemdesign.data.sync.SyncScheduler
 import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
@@ -104,46 +105,46 @@ class NotesViewModelTest {
 
     @Test
     fun saveNote_withAutoSyncDisabled_doesNotScheduleBackgroundSync() = runTest {
-        var scheduleCount = 0
+        val syncScheduler = CountingSyncScheduler()
         val viewModel = NotesViewModel(
             notesRepository = FakeNotesRepository(),
-            scheduleBackgroundSync = { scheduleCount += 1 },
+            syncScheduler = syncScheduler,
         )
 
         viewModel.onEvent(NotesUiEvent.TitleChanged("Needs background sync"))
         viewModel.onEvent(NotesUiEvent.SaveNote)
 
-        assertEquals(0, scheduleCount)
+        assertEquals(0, syncScheduler.scheduleCount)
     }
 
     @Test
     fun saveNote_withAutoSyncEnabled_schedulesBackgroundSync() = runTest {
-        var scheduleCount = 0
+        val syncScheduler = CountingSyncScheduler()
         val viewModel = NotesViewModel(
             notesRepository = FakeNotesRepository(),
-            scheduleBackgroundSync = { scheduleCount += 1 },
+            syncScheduler = syncScheduler,
         )
 
         viewModel.onEvent(NotesUiEvent.AutoBackgroundSyncChanged(enabled = true))
         viewModel.onEvent(NotesUiEvent.TitleChanged("Needs background sync"))
         viewModel.onEvent(NotesUiEvent.SaveNote)
 
-        assertEquals(1, scheduleCount)
+        assertEquals(1, syncScheduler.scheduleCount)
     }
 
     @Test
     fun enablingAutoSync_withExistingPendingNote_schedulesBackgroundSync() = runTest {
-        var scheduleCount = 0
+        val syncScheduler = CountingSyncScheduler()
         val viewModel = NotesViewModel(
             notesRepository = FakeNotesRepository(),
-            scheduleBackgroundSync = { scheduleCount += 1 },
+            syncScheduler = syncScheduler,
         )
 
         viewModel.onEvent(NotesUiEvent.TitleChanged("Created before auto sync"))
         viewModel.onEvent(NotesUiEvent.SaveNote)
         viewModel.onEvent(NotesUiEvent.AutoBackgroundSyncChanged(enabled = true))
 
-        assertEquals(1, scheduleCount)
+        assertEquals(1, syncScheduler.scheduleCount)
         assertEquals(
             "Auto background sync enabled. Pending changes queued.",
             viewModel.uiState.value.lastSyncMessage,
@@ -152,22 +153,22 @@ class NotesViewModelTest {
 
     @Test
     fun deleteNote_removesNoteWithoutSchedulingWhenAutoSyncDisabled() = runTest {
-        var scheduleCount = 0
+        val syncScheduler = CountingSyncScheduler()
         val viewModel = NotesViewModel(
             notesRepository = FakeNotesRepository(),
-            scheduleBackgroundSync = { scheduleCount += 1 },
+            syncScheduler = syncScheduler,
         )
         val noteId = viewModel.uiState.value.notes.first().id
 
         viewModel.onEvent(NotesUiEvent.DeleteNote(noteId))
 
         assertEquals(emptyList<FieldNote>(), viewModel.uiState.value.notes)
-        assertEquals(0, scheduleCount)
+        assertEquals(0, syncScheduler.scheduleCount)
     }
 
     @Test
     fun keepLocalConflict_returnsNoteToPendingUpdateAndSchedulesSync() = runTest {
-        var scheduleCount = 0
+        val syncScheduler = CountingSyncScheduler()
         val viewModel = NotesViewModel(
             notesRepository = FakeNotesRepository(
                 initialNotes = listOf(
@@ -183,7 +184,7 @@ class NotesViewModelTest {
                     ),
                 ),
             ),
-            scheduleBackgroundSync = { scheduleCount += 1 },
+            syncScheduler = syncScheduler,
         )
 
         viewModel.onEvent(NotesUiEvent.AutoBackgroundSyncChanged(enabled = true))
@@ -193,7 +194,7 @@ class NotesViewModelTest {
         assertEquals("Local title", note.title)
         assertEquals(SyncStatus.PendingUpdate, note.syncStatus)
         assertEquals(null, note.conflictTitle)
-        assertEquals(1, scheduleCount)
+        assertEquals(1, syncScheduler.scheduleCount)
     }
 
     @Test
@@ -274,5 +275,14 @@ class NotesViewModelTest {
             "Remote note edited. Now edit the local copy and sync to detect conflict.",
             state.lastSyncMessage,
         )
+    }
+
+    private class CountingSyncScheduler : SyncScheduler {
+        var scheduleCount = 0
+            private set
+
+        override fun enqueueOneTimeSync() {
+            scheduleCount += 1
+        }
     }
 }

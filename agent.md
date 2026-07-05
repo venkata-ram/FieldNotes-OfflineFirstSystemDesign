@@ -44,6 +44,7 @@ Recent implementation state to remember:
 - Auto sync uses WorkManager one-time work with a network constraint. It is not periodic/time based.
 - Turning on auto sync queues existing syncable pending notes. Conflict notes wait until the user resolves them.
 - Repository sync uses a Kotlin `Mutex` so manual sync and background sync do not run the push/pull loop at the same time.
+- Dependency injection now uses Hilt. Do not reintroduce the removed manual `AppContainer` or custom `ViewModelProvider.Factory`.
 
 ## Collaboration Style
 
@@ -80,6 +81,7 @@ Use this architecture direction unless the user asks to change it:
 - Conflicts should be explained and handled deliberately.
 - Retry, backoff, idempotency, and error handling should be demonstrated.
 - Advanced concepts such as `Mutex`, unique WorkManager work, network constraints, tombstones, and conflict metadata should be explained in simple English in docs and interview questions.
+- Hilt should be used for app-level dependencies, ViewModels, and WorkManager workers.
 - The final result should teach how simple offline-first ideas scale into system design.
 
 ## Git Notes

@@ -500,6 +500,36 @@ Advanced concepts to review:
 - Conflict metadata for durable resolution.
 - Local source of truth with Room and Flow.
 
+### M16: Dependency Injection With Hilt
+
+Learning goal:
+
+- Replace manual object construction with Hilt dependency injection.
+
+Expected implementation:
+
+- Add Hilt Gradle plugin and dependencies.
+- Add `@HiltAndroidApp` application class.
+- Add `@AndroidEntryPoint` activity.
+- Add Hilt modules for Room, fake API, WorkManager, repository, connectivity, and sync scheduler.
+- Convert `NotesViewModel` to `@HiltViewModel`.
+- Convert `NotesSyncWorker` to `@HiltWorker`.
+- Remove the manual `AppContainer` and custom ViewModel factory.
+
+Learning topics:
+
+- Constructor injection.
+- Modules and bindings.
+- Singleton-scoped app dependencies.
+- Hilt ViewModel injection.
+- Hilt WorkManager integration.
+- Testability with small interfaces.
+
+Status:
+
+- Implemented Hilt dependency injection and removed manual DI boilerplate.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ## Final Status
 
 All planned milestones are complete.
@@ -521,6 +551,7 @@ All planned milestones are complete.
 - `docs/learning/m13-testing-offline-first-behavior.md`
 - `docs/learning/m14-observability-and-debug-tools.md`
 - `docs/learning/m15-final-polish-and-architecture-review.md`
+- `docs/learning/m16-dependency-injection-with-hilt.md`
 
 ## Git Setup
 

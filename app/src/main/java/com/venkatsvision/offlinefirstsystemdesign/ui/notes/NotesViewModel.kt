@@ -2,20 +2,26 @@ package com.venkatsvision.offlinefirstsystemdesign.ui.notes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.venkatsvision.offlinefirstsystemdesign.data.sync.SyncScheduler
 import com.venkatsvision.offlinefirstsystemdesign.domain.ConflictResolution
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class NotesViewModel(
+@HiltViewModel
+class NotesViewModel @Inject constructor(
     private val notesRepository: NotesRepository,
-    private val scheduleBackgroundSync: () -> Unit = {},
+    private val syncScheduler: SyncScheduler,
 ) : ViewModel() {
+    constructor(notesRepository: NotesRepository) : this(notesRepository, NoOpSyncScheduler)
+
     private val _uiState = MutableStateFlow(NotesUiState())
 
     val uiState: StateFlow<NotesUiState> = _uiState.asStateFlow()
@@ -212,13 +218,13 @@ class NotesViewModel(
             )
         }
         if (enabled && hasSyncablePendingChanges) {
-            scheduleBackgroundSync()
+            syncScheduler.enqueueOneTimeSync()
         }
     }
 
     private fun scheduleBackgroundSyncIfEnabled() {
         if (_uiState.value.autoBackgroundSyncEnabled) {
-            scheduleBackgroundSync()
+            syncScheduler.enqueueOneTimeSync()
         }
     }
 
@@ -243,4 +249,8 @@ class NotesViewModel(
             }
         }
     }
+}
+
+private object NoOpSyncScheduler : SyncScheduler {
+    override fun enqueueOneTimeSync() = Unit
 }
