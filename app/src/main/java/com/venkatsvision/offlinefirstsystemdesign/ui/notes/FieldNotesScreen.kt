@@ -21,6 +21,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -50,11 +52,17 @@ import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import com.venkatsvision.offlinefirstsystemdesign.ui.theme.OfflineFirstSystemDesignTheme
 
-private enum class DemoScreen(val label: String, val title: String, val subtitle: String) {
+private enum class DemoScreen(
+    val label: String,
+    val title: String,
+    val subtitle: String,
+    val showInBottomBar: Boolean = true,
+) {
     Notes("Notes", "Field Notes", "Capture and inspect local state"),
     Remote("Remote", "Remote API", "Edit the fake server copy"),
     Sync("Sync", "Sync Control", "Push, pull, conflict, retry"),
     Learn("Learn", "Architecture", "Offline-first system design"),
+    Editor("Edit", "Note Editor", "Write locally first, sync when ready", showInBottomBar = false),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,19 +98,39 @@ fun FieldNotesScreen(
             )
         },
         bottomBar = {
-            NavigationBar {
-                DemoScreen.entries.forEach { screen ->
-                    NavigationBarItem(
-                        selected = selectedScreen == screen,
-                        onClick = { selectedScreen = screen },
-                        icon = {
-                            Text(
-                                text = screen.label.take(1),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        },
-                        label = { Text(screen.label) },
+            if (selectedScreen.showInBottomBar) {
+                NavigationBar {
+                    DemoScreen.entries.filter { it.showInBottomBar }.forEach { screen ->
+                        NavigationBarItem(
+                            selected = selectedScreen == screen,
+                            onClick = { selectedScreen = screen },
+                            icon = {
+                                Text(
+                                    text = screen.label.take(1),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            },
+                            label = { Text(screen.label) },
+                        )
+                    }
+                }
+            }
+        },
+        floatingActionButton = {
+            if (selectedScreen == DemoScreen.Notes) {
+                FloatingActionButton(
+                    onClick = {
+                        onEvent(NotesUiEvent.ClearEditor)
+                        selectedScreen = DemoScreen.Editor
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Text(
+                        text = "+",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
@@ -118,7 +146,20 @@ fun FieldNotesScreen(
             when (selectedScreen) {
                 DemoScreen.Notes -> notesScreenContent(
                     uiState = uiState,
+                    onCreateNote = {
+                        onEvent(NotesUiEvent.ClearEditor)
+                        selectedScreen = DemoScreen.Editor
+                    },
+                    onEditNote = { noteId ->
+                        onEvent(NotesUiEvent.EditNote(noteId))
+                        selectedScreen = DemoScreen.Editor
+                    },
                     onEvent = onEvent,
+                )
+                DemoScreen.Editor -> editorScreenContent(
+                    uiState = uiState,
+                    onEvent = onEvent,
+                    onDone = { selectedScreen = DemoScreen.Notes },
                 )
                 DemoScreen.Remote -> remoteScreenContent(
                     uiState = uiState,
@@ -137,29 +178,25 @@ fun FieldNotesScreen(
 
 private fun androidx.compose.foundation.lazy.LazyListScope.notesScreenContent(
     uiState: NotesUiState,
+    onCreateNote: () -> Unit,
+    onEditNote: (Long) -> Unit,
     onEvent: (NotesUiEvent) -> Unit,
 ) {
-    item {
-        SectionTitle(
-            title = "Capture",
-            subtitle = if (uiState.isEditing) "Editing local state" else "Write first, sync later",
-        )
-        NoteEditor(
-            isEditing = uiState.isEditing,
-            title = uiState.editorTitle,
-            body = uiState.editorBody,
-            onTitleChange = { onEvent(NotesUiEvent.TitleChanged(it)) },
-            onBodyChange = { onEvent(NotesUiEvent.BodyChanged(it)) },
-            onSave = { onEvent(NotesUiEvent.SaveNote) },
-            onClear = { onEvent(NotesUiEvent.ClearEditor) },
-        )
-    }
-
     item {
         SectionTitle(
             title = "Local source of truth",
             subtitle = "${uiState.notes.size} visible note(s)",
         )
+    }
+
+    item {
+        Button(
+            onClick = onCreateNote,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = 14.dp),
+        ) {
+            Text("Create local note")
+        }
     }
 
     if (uiState.notes.isEmpty()) {
@@ -170,13 +207,41 @@ private fun androidx.compose.foundation.lazy.LazyListScope.notesScreenContent(
         items(uiState.notes, key = { it.id }) { note ->
             NoteListItem(
                 note = note,
-                onClick = { onEvent(NotesUiEvent.EditNote(note.id)) },
+                onClick = { onEditNote(note.id) },
                 onDelete = { onEvent(NotesUiEvent.DeleteNote(note.id)) },
                 onKeepLocal = { onEvent(NotesUiEvent.KeepLocalConflict(note.id)) },
                 onUseRemote = { onEvent(NotesUiEvent.UseRemoteConflict(note.id)) },
                 onMergeBoth = { onEvent(NotesUiEvent.MergeBothConflict(note.id)) },
             )
         }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.editorScreenContent(
+    uiState: NotesUiState,
+    onEvent: (NotesUiEvent) -> Unit,
+    onDone: () -> Unit,
+) {
+    item {
+        SectionTitle(
+            title = if (uiState.isEditing) "Edit local note" else "New local note",
+            subtitle = "The app saves here first, then sync moves it to remote.",
+        )
+        NoteEditor(
+            isEditing = uiState.isEditing,
+            title = uiState.editorTitle,
+            body = uiState.editorBody,
+            onTitleChange = { onEvent(NotesUiEvent.TitleChanged(it)) },
+            onBodyChange = { onEvent(NotesUiEvent.BodyChanged(it)) },
+            onSave = {
+                onEvent(NotesUiEvent.SaveNote)
+                onDone()
+            },
+            onClear = {
+                onEvent(NotesUiEvent.ClearEditor)
+                onDone()
+            },
+        )
     }
 }
 
@@ -276,6 +341,15 @@ private fun androidx.compose.foundation.lazy.LazyListScope.learnScreenContent() 
             title = "4. Conflicts are explicit",
             body = "When local and remote versions diverge, the app marks a conflict instead of silently overwriting data.",
         )
+    }
+    item {
+        LearningCard(
+            title = "5. Merge both keeps intent",
+            body = "Merge both combines the local edit and remote edit into one local note, clears the conflict, and marks it pending update so the merged result is pushed on the next sync.",
+        )
+    }
+    item {
+        MergeConflictFlow()
     }
 }
 
@@ -385,9 +459,7 @@ private fun RemoteEditor(
             OutlinedTextField(
                 value = body,
                 onValueChange = onBodyChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
+                modifier = Modifier.fillMaxWidth(),
                 label = { Text("Remote body") },
                 minLines = 4,
             )
@@ -459,8 +531,6 @@ private fun RemoteNoteCard(
                     text = body,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -685,6 +755,86 @@ private fun LearningCard(title: String, body: String) {
 }
 
 @Composable
+private fun MergeConflictFlow() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFFF5FAF7),
+        border = BorderStroke(1.dp, Color(0xFFBFD8CC)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Merge conflict flow",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0E5D42),
+            )
+            FlowStep(
+                title = "1. Local edit",
+                body = "User changes the Room copy while offline or before syncing.",
+            )
+            FlowArrow()
+            FlowStep(
+                title = "2. Remote edit",
+                body = "The server copy changed too, so versions no longer match.",
+            )
+            FlowArrow()
+            FlowStep(
+                title = "3. Conflict",
+                body = "Sync stops for that note and asks the user to choose.",
+            )
+            FlowArrow()
+            FlowStep(
+                title = "4. Merge both",
+                body = "The app creates one combined local note, then pushes that merged note on the next sync.",
+            )
+        }
+    }
+}
+
+@Composable
+private fun FlowStep(title: String, body: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, Color(0xFFD7E6DE)),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0E5D42),
+            )
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FlowArrow() {
+    Text(
+        text = "v",
+        modifier = Modifier.fillMaxWidth(),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF0E5D42),
+        textAlign = TextAlign.Center,
+    )
+}
+
+@Composable
 private fun NoteEditor(
     isEditing: Boolean,
     title: String,
@@ -694,6 +844,8 @@ private fun NoteEditor(
     onSave: () -> Unit,
     onClear: () -> Unit,
 ) {
+    val canSave = title.isNotBlank() || body.isNotBlank()
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -731,9 +883,7 @@ private fun NoteEditor(
             OutlinedTextField(
                 value = body,
                 onValueChange = onBodyChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
+                modifier = Modifier.fillMaxWidth(),
                 label = { Text("Body") },
                 minLines = 4,
             )
@@ -743,9 +893,12 @@ private fun NoteEditor(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(onClick = onClear) {
-                    Text("Clear")
+                    Text("Cancel")
                 }
-                Button(onClick = onSave) {
+                Button(
+                    onClick = onSave,
+                    enabled = canSave,
+                ) {
                     Text(if (isEditing) "Update local note" else "Save local note")
                 }
             }
@@ -803,7 +956,7 @@ private fun EmptyNotesState() {
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Text(
-                text = "No notes yet. Add one above.",
+                text = "No notes yet. Tap Create local note or the + button.",
                 modifier = Modifier.padding(24.dp),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -845,8 +998,6 @@ private fun NoteListItem(
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     OutlinedButton(
@@ -866,8 +1017,6 @@ private fun NoteListItem(
                     text = note.body,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             StatusPill(
