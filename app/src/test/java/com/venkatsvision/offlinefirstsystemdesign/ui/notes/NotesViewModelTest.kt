@@ -82,4 +82,18 @@ class NotesViewModelTest {
         assertEquals("Sync complete: pushed 1, pulled 0", state.lastSyncMessage)
         assertFalse(state.isSyncing)
     }
+
+    @Test
+    fun saveNote_schedulesBackgroundSync() = runTest {
+        var scheduleCount = 0
+        val viewModel = NotesViewModel(
+            notesRepository = FakeNotesRepository(),
+            scheduleBackgroundSync = { scheduleCount += 1 },
+        )
+
+        viewModel.onEvent(NotesUiEvent.TitleChanged("Needs background sync"))
+        viewModel.onEvent(NotesUiEvent.SaveNote)
+
+        assertEquals(1, scheduleCount)
+    }
 }

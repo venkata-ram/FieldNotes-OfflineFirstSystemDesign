@@ -297,6 +297,11 @@ Learning topics:
 - Constraints.
 - Why background sync is not just a coroutine.
 
+Status:
+
+- Implemented one-time constrained WorkManager sync scheduling after local saves.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M9: Delete And Tombstones
 
 Learning goal:

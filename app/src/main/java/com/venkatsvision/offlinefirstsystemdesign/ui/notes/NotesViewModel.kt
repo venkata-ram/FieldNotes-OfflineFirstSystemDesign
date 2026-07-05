@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 
 class NotesViewModel(
     private val notesRepository: NotesRepository,
+    private val scheduleBackgroundSync: () -> Unit = {},
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(NotesUiState())
 
@@ -83,6 +84,7 @@ class NotesViewModel(
         if (current.editingNoteId == null) {
             viewModelScope.launch {
                 notesRepository.createNote(title = title, body = cleanBody)
+                scheduleBackgroundSync()
             }
         } else {
             viewModelScope.launch {
@@ -91,6 +93,7 @@ class NotesViewModel(
                     title = title,
                     body = cleanBody,
                 )
+                scheduleBackgroundSync()
             }
         }
 

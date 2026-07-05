@@ -28,19 +28,29 @@ private fun notesViewModel(): NotesViewModel {
     val repository = remember(context) {
         AppContainer.notesRepository(context)
     }
+    val syncScheduler = remember(context) {
+        AppContainer.notesSyncScheduler(context)
+    }
 
     return viewModel(
-        factory = NotesViewModelFactory(repository),
+        factory = NotesViewModelFactory(
+            notesRepository = repository,
+            scheduleBackgroundSync = syncScheduler::enqueueOneTimeSync,
+        ),
     )
 }
 
 private class NotesViewModelFactory(
     private val notesRepository: NotesRepository,
+    private val scheduleBackgroundSync: () -> Unit,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(NotesViewModel::class.java)) {
-            return NotesViewModel(notesRepository) as T
+            return NotesViewModel(
+                notesRepository = notesRepository,
+                scheduleBackgroundSync = scheduleBackgroundSync,
+            ) as T
         }
         error("Unknown ViewModel class: ${modelClass.name}")
     }

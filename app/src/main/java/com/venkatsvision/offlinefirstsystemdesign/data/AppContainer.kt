@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.venkatsvision.offlinefirstsystemdesign.data.local.AppDatabase
 import com.venkatsvision.offlinefirstsystemdesign.data.remote.FakeNotesApi
 import com.venkatsvision.offlinefirstsystemdesign.data.remote.InMemoryFakeNotesApi
+import com.venkatsvision.offlinefirstsystemdesign.data.sync.NotesSyncScheduler
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 
 object AppContainer {
@@ -18,6 +19,9 @@ object AppContainer {
                 repository = it
             }
         }
+
+    fun notesSyncScheduler(context: Context): NotesSyncScheduler =
+        NotesSyncScheduler(context.applicationContext)
 
     private fun buildRepository(context: Context): NotesRepository {
         val database = Room.databaseBuilder(
