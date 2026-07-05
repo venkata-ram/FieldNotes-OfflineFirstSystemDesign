@@ -1,18 +1,24 @@
 package com.venkatsvision.offlinefirstsystemdesign.data.remote
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
 class InMemoryFakeNotesApi(
     private val delayMillis: Long = 300,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : FakeNotesApi {
-    private val notes = linkedMapOf<String, RemoteNote>()
+    private val remoteStore = linkedMapOf<String, RemoteNote>()
+    private val notesFlow = MutableStateFlow(emptyList<RemoteNote>())
     var failNextRequest: Boolean = false
+
+    override val notes: Flow<List<RemoteNote>> = notesFlow.asStateFlow()
 
     override suspend fun getNotes(): List<RemoteNote> {
         simulateNetwork()
-        return notes.values.sortedByDescending { it.updatedAtMillis }
+        return sortedNotes()
     }
 
     override suspend fun createNote(
@@ -27,7 +33,8 @@ class InMemoryFakeNotesApi(
             body = body,
             updatedAtMillis = maxOf(updatedAtMillis, clock()),
         )
-        notes[note.remoteId] = note
+        remoteStore[note.remoteId] = note
+        publishNotes()
         return note
     }
 
@@ -44,14 +51,23 @@ class InMemoryFakeNotesApi(
             body = body,
             updatedAtMillis = maxOf(updatedAtMillis, clock()),
         )
-        notes[remoteId] = note
+        remoteStore[remoteId] = note
+        publishNotes()
         return note
     }
 
     override suspend fun deleteNote(remoteId: String) {
         simulateNetwork()
-        notes.remove(remoteId)
+        remoteStore.remove(remoteId)
+        publishNotes()
     }
+
+    private fun publishNotes() {
+        notesFlow.value = sortedNotes()
+    }
+
+    private fun sortedNotes(): List<RemoteNote> =
+        remoteStore.values.sortedByDescending { it.updatedAtMillis }
 
     private suspend fun simulateNetwork() {
         if (delayMillis > 0) {

@@ -30,6 +30,13 @@ class NotesViewModel(
             }
         }
         viewModelScope.launch {
+            notesRepository.remoteNotes.collect { remoteNotes ->
+                _uiState.update { current ->
+                    current.copy(remoteNotes = remoteNotes)
+                }
+            }
+        }
+        viewModelScope.launch {
             notesRepository.syncLog.collect { syncLog ->
                 _uiState.update { current ->
                     current.copy(syncLog = syncLog)
@@ -47,8 +54,13 @@ class NotesViewModel(
             is NotesUiEvent.SimulateRemoteEdit -> simulateRemoteEdit(event.noteId)
             is NotesUiEvent.KeepLocalConflict -> resolveConflict(event.noteId, ConflictResolution.KeepLocal)
             is NotesUiEvent.UseRemoteConflict -> resolveConflict(event.noteId, ConflictResolution.UseRemote)
+            is NotesUiEvent.EditRemoteNote -> startEditingRemote(event.remoteId)
+            is NotesUiEvent.RemoteTitleChanged -> updateRemoteTitle(event.title)
+            is NotesUiEvent.RemoteBodyChanged -> updateRemoteBody(event.body)
             is NotesUiEvent.AutoBackgroundSyncChanged -> setAutoBackgroundSync(event.enabled)
             NotesUiEvent.ClearEditor -> clearEditor()
+            NotesUiEvent.ClearRemoteEditor -> clearRemoteEditor()
+            NotesUiEvent.SaveRemoteNote -> saveRemoteNote()
             NotesUiEvent.SaveNote -> saveNote()
             is NotesUiEvent.SyncNow -> syncNow(event.isOnline)
         }
@@ -85,6 +97,53 @@ class NotesViewModel(
                 editorBody = "",
             )
         }
+    }
+
+    private fun startEditingRemote(remoteId: String) {
+        val note = _uiState.value.remoteNotes.firstOrNull { it.remoteId == remoteId } ?: return
+        _uiState.update { current ->
+            current.copy(
+                editingRemoteId = note.remoteId,
+                remoteEditorTitle = note.title,
+                remoteEditorBody = note.body,
+            )
+        }
+    }
+
+    private fun updateRemoteTitle(title: String) {
+        _uiState.update { current ->
+            current.copy(remoteEditorTitle = title)
+        }
+    }
+
+    private fun updateRemoteBody(body: String) {
+        _uiState.update { current ->
+            current.copy(remoteEditorBody = body)
+        }
+    }
+
+    private fun clearRemoteEditor() {
+        _uiState.update { current ->
+            current.copy(
+                editingRemoteId = null,
+                remoteEditorTitle = "",
+                remoteEditorBody = "",
+            )
+        }
+    }
+
+    private fun saveRemoteNote() {
+        val current = _uiState.value
+        val remoteId = current.editingRemoteId ?: return
+        val title = current.remoteEditorTitle.trim().ifEmpty { "Untitled remote note" }
+        val body = current.remoteEditorBody.trim()
+        viewModelScope.launch {
+            notesRepository.updateRemoteNote(remoteId, title, body)
+            _uiState.update { state ->
+                state.copy(lastSyncMessage = "Remote note edited. Now edit the local copy and sync to detect conflict.")
+            }
+        }
+        clearRemoteEditor()
     }
 
     private fun saveNote() {

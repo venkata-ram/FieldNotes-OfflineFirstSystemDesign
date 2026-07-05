@@ -52,6 +52,7 @@ import com.venkatsvision.offlinefirstsystemdesign.ui.theme.OfflineFirstSystemDes
 
 private enum class DemoScreen(val label: String, val title: String, val subtitle: String) {
     Notes("Notes", "Field Notes", "Capture and inspect local state"),
+    Remote("Remote", "Remote API", "Edit the fake server copy"),
     Sync("Sync", "Sync Control", "Push, pull, conflict, retry"),
     Learn("Learn", "Architecture", "Offline-first system design"),
 }
@@ -119,6 +120,10 @@ fun FieldNotesScreen(
                     uiState = uiState,
                     onEvent = onEvent,
                 )
+                DemoScreen.Remote -> remoteScreenContent(
+                    uiState = uiState,
+                    onEvent = onEvent,
+                )
                 DemoScreen.Sync -> syncScreenContent(
                     uiState = uiState,
                     isOnline = isOnline,
@@ -176,6 +181,46 @@ private fun androidx.compose.foundation.lazy.LazyListScope.notesScreenContent(
                 onSimulateRemoteEdit = { onEvent(NotesUiEvent.SimulateRemoteEdit(note.id)) },
                 onKeepLocal = { onEvent(NotesUiEvent.KeepLocalConflict(note.id)) },
                 onUseRemote = { onEvent(NotesUiEvent.UseRemoteConflict(note.id)) },
+            )
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.remoteScreenContent(
+    uiState: NotesUiState,
+    onEvent: (NotesUiEvent) -> Unit,
+) {
+    item {
+        SectionTitle(
+            title = "Fake remote server",
+            subtitle = "Edit this copy to create a conflict demo",
+        )
+    }
+
+    if (uiState.remoteNotes.isEmpty()) {
+        item {
+            EmptyRemoteState()
+        }
+    } else {
+        if (uiState.isEditingRemote) {
+            item {
+                RemoteEditor(
+                    title = uiState.remoteEditorTitle,
+                    body = uiState.remoteEditorBody,
+                    onTitleChange = { onEvent(NotesUiEvent.RemoteTitleChanged(it)) },
+                    onBodyChange = { onEvent(NotesUiEvent.RemoteBodyChanged(it)) },
+                    onSave = { onEvent(NotesUiEvent.SaveRemoteNote) },
+                    onClear = { onEvent(NotesUiEvent.ClearRemoteEditor) },
+                )
+            }
+        }
+
+        items(uiState.remoteNotes, key = { it.remoteId }) { note ->
+            RemoteNoteCard(
+                remoteId = note.remoteId,
+                title = note.title,
+                body = note.body,
+                onEdit = { onEvent(NotesUiEvent.EditRemoteNote(note.remoteId)) },
             )
         }
     }
@@ -308,6 +353,149 @@ private fun DemoInstructionCard(message: String) {
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF715000),
             )
+        }
+    }
+}
+
+@Composable
+private fun EmptyRemoteState() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "No remote items yet",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "Create a local note, go to Sync, then tap Sync pending changes. The remote copy will appear here.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RemoteEditor(
+    title: String,
+    body: String,
+    onTitleChange: (String) -> Unit,
+    onBodyChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onClear: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFFE9EEF5),
+        border = BorderStroke(1.dp, Color(0xFFB8C8DA)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Edit remote copy",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF285F8F),
+            )
+            OutlinedTextField(
+                value = title,
+                onValueChange = onTitleChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Remote title") },
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = body,
+                onValueChange = onBodyChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
+                label = { Text("Remote body") },
+                minLines = 4,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onClear) {
+                    Text("Cancel")
+                }
+                Button(onClick = onSave) {
+                    Text("Save remote edit")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RemoteNoteCard(
+    remoteId: String,
+    title: String,
+    body: String,
+    onEdit: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, Color(0xFFB8C8DA)),
+        shadowElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp),
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = remoteId,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Button(onClick = onEdit) {
+                    Text("Edit remote")
+                }
+            }
+            if (body.isNotBlank()) {
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

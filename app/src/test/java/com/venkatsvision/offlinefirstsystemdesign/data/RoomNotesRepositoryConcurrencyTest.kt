@@ -135,12 +135,15 @@ private class InMemoryNoteDao(
 }
 
 private class CountingFakeNotesApi : FakeNotesApi {
-    private val notes = linkedMapOf<String, RemoteNote>()
+    private val remoteStore = linkedMapOf<String, RemoteNote>()
+    private val notesFlow = MutableStateFlow(emptyList<RemoteNote>())
     var createCount = 0
         private set
 
+    override val notes: Flow<List<RemoteNote>> = notesFlow
+
     override suspend fun getNotes(): List<RemoteNote> =
-        notes.values.toList()
+        remoteStore.values.toList()
 
     override suspend fun createNote(
         title: String,
@@ -155,7 +158,8 @@ private class CountingFakeNotesApi : FakeNotesApi {
             body = body,
             updatedAtMillis = updatedAtMillis,
         )
-        notes[remote.remoteId] = remote
+        remoteStore[remote.remoteId] = remote
+        publishNotes()
         return remote
     }
 
@@ -166,18 +170,26 @@ private class CountingFakeNotesApi : FakeNotesApi {
         updatedAtMillis: Long,
     ): RemoteNote {
         val remote = RemoteNote(remoteId, title, body, updatedAtMillis)
-        notes[remoteId] = remote
+        remoteStore[remoteId] = remote
+        publishNotes()
         return remote
     }
 
     override suspend fun deleteNote(remoteId: String) {
-        notes.remove(remoteId)
+        remoteStore.remove(remoteId)
+        publishNotes()
+    }
+
+    private fun publishNotes() {
+        notesFlow.value = remoteStore.values.toList()
     }
 }
 
 private class FixedCreateIdFakeNotesApi(
     private val remoteId: String,
 ) : FakeNotesApi {
+    override val notes: Flow<List<RemoteNote>> = MutableStateFlow(emptyList())
+
     override suspend fun getNotes(): List<RemoteNote> = emptyList()
 
     override suspend fun createNote(

@@ -8,6 +8,7 @@ import com.venkatsvision.offlinefirstsystemdesign.domain.ConflictResolution
 import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
+import com.venkatsvision.offlinefirstsystemdesign.domain.RemoteFieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncResult
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +27,10 @@ class RoomNotesRepository(
     override val notes: Flow<List<FieldNote>> =
         noteDao.observeNotes().map { entities ->
             entities.map { it.toDomain() }
+        }
+    override val remoteNotes: Flow<List<RemoteFieldNote>> =
+        notesApi.notes.map { remoteNotes ->
+            remoteNotes.map { it.toDomain() }
         }
     private val _syncLog = MutableStateFlow(listOf("Debug sync log ready"))
     override val syncLog: Flow<List<String>> = _syncLog.asStateFlow()
@@ -93,6 +98,16 @@ class RoomNotesRepository(
             updatedAtMillis = clock() + 3_600_000,
         )
         log("Simulated remote edit for note $noteId")
+    }
+
+    override suspend fun updateRemoteNote(remoteId: String, title: String, body: String) {
+        notesApi.updateNote(
+            remoteId = remoteId,
+            title = title,
+            body = body,
+            updatedAtMillis = clock() + 3_600_000,
+        )
+        log("Edited remote note $remoteId")
     }
 
     override suspend fun resolveConflict(noteId: Long, resolution: ConflictResolution) {
@@ -278,6 +293,13 @@ class RoomNotesRepository(
             syncStatus = SyncStatus.Synced.name,
             pendingOperation = PendingOperation.None.name,
             updatedAtMillis = updatedAtMillis,
+        )
+
+    private fun RemoteNote.toDomain(): RemoteFieldNote =
+        RemoteFieldNote(
+            remoteId = remoteId,
+            title = title,
+            body = body,
         )
 
     private inline fun <reified T : Enum<T>> enumValueOrDefault(

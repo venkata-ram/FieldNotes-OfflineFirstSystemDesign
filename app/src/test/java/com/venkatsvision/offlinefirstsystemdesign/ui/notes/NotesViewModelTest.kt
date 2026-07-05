@@ -218,4 +218,24 @@ class NotesViewModelTest {
             viewModel.uiState.value.lastSyncMessage,
         )
     }
+
+    @Test
+    fun saveRemoteNote_updatesRemoteCopyAndShowsDemoMessage() = runTest {
+        val viewModel = NotesViewModel(FakeNotesRepository())
+        val remoteId = viewModel.uiState.value.remoteNotes.first().remoteId
+
+        viewModel.onEvent(NotesUiEvent.EditRemoteNote(remoteId))
+        viewModel.onEvent(NotesUiEvent.RemoteTitleChanged("Server title"))
+        viewModel.onEvent(NotesUiEvent.RemoteBodyChanged("Server body"))
+        viewModel.onEvent(NotesUiEvent.SaveRemoteNote)
+
+        val state = viewModel.uiState.value
+        assertEquals("Server title", state.remoteNotes.first().title)
+        assertEquals("Server body", state.remoteNotes.first().body)
+        assertEquals(false, state.isEditingRemote)
+        assertEquals(
+            "Remote note edited. Now edit the local copy and sync to detect conflict.",
+            state.lastSyncMessage,
+        )
+    }
 }

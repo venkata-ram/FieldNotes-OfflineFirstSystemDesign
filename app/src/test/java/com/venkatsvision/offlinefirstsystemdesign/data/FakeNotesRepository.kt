@@ -4,6 +4,7 @@ import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 import com.venkatsvision.offlinefirstsystemdesign.domain.ConflictResolution
 import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
+import com.venkatsvision.offlinefirstsystemdesign.domain.RemoteFieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncResult
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.flow.Flow
@@ -25,9 +26,17 @@ class FakeNotesRepository(
 ) : NotesRepository {
     private var nextId = initialNotes.maxOfOrNull { it.id + 1 } ?: 1L
     private val notesFlow = MutableStateFlow(initialNotes)
+    private val remoteNotesFlow = MutableStateFlow(
+        initialNotes.mapNotNull { note ->
+            note.remoteId?.let { remoteId ->
+                RemoteFieldNote(remoteId, note.title, note.body)
+            }
+        },
+    )
     private val syncLogFlow = MutableStateFlow(listOf("Fake sync log ready"))
 
     override val notes: Flow<List<FieldNote>> = notesFlow
+    override val remoteNotes: Flow<List<RemoteFieldNote>> = remoteNotesFlow.asStateFlow()
     override val syncLog: Flow<List<String>> = syncLogFlow.asStateFlow()
 
     override suspend fun seedStarterNoteIfEmpty() {
@@ -96,6 +105,19 @@ class FakeNotesRepository(
 
     override suspend fun simulateRemoteEdit(noteId: Long) = Unit
 
+    override suspend fun updateRemoteNote(remoteId: String, title: String, body: String) {
+        remoteNotesFlow.update { remoteNotes ->
+            remoteNotes.map { note ->
+                if (note.remoteId == remoteId) {
+                    note.copy(title = title, body = body)
+                } else {
+                    note
+                }
+            }
+        }
+        log("Edited fake remote note $remoteId")
+    }
+
     override suspend fun resolveConflict(noteId: Long, resolution: ConflictResolution) {
         notesFlow.update { notes ->
             notes.map { note ->
@@ -134,6 +156,11 @@ class FakeNotesRepository(
                     syncStatus = SyncStatus.Synced,
                     pendingOperation = PendingOperation.None,
                 )
+            }
+        }
+        remoteNotesFlow.value = notesFlow.value.mapNotNull { note ->
+            note.remoteId?.let { remoteId ->
+                RemoteFieldNote(remoteId, note.title, note.body)
             }
         }
         log("Fake sync pushed $pendingCount note(s)")
