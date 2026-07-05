@@ -122,6 +122,25 @@ class RoomNotesRepository(
                 conflictUpdatedAtMillis = null,
                 updatedAtMillis = existing.conflictUpdatedAtMillis ?: clock(),
             )
+
+            ConflictResolution.MergeBoth -> existing.copy(
+                title = mergeText(
+                    local = existing.title,
+                    remote = existing.conflictTitle,
+                    label = "title",
+                ),
+                body = mergeText(
+                    local = existing.body,
+                    remote = existing.conflictBody,
+                    label = "body",
+                ),
+                syncStatus = SyncStatus.PendingUpdate.name,
+                pendingOperation = PendingOperation.Update.name,
+                conflictTitle = null,
+                conflictBody = null,
+                conflictUpdatedAtMillis = null,
+                updatedAtMillis = clock(),
+            )
         }
 
         noteDao.update(resolved)
@@ -300,5 +319,19 @@ class RoomNotesRepository(
         _syncLog.update { entries ->
             (listOf(message) + entries).take(20)
         }
+    }
+
+    private fun mergeText(local: String, remote: String?, label: String): String {
+        val cleanRemote = remote.orEmpty()
+        if (cleanRemote.isBlank() || cleanRemote == local) return local
+        if (local.isBlank()) return cleanRemote
+
+        return """
+            Local $label:
+            $local
+
+            Remote $label:
+            $cleanRemote
+        """.trimIndent()
     }
 }

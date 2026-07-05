@@ -207,6 +207,37 @@ class NotesViewModelTest {
     }
 
     @Test
+    fun mergeBothConflict_combinesLocalAndRemoteVersions() = runTest {
+        val viewModel = NotesViewModel(
+            notesRepository = FakeNotesRepository(
+                initialNotes = listOf(
+                    FieldNote(
+                        id = 1L,
+                        remoteId = "remote-1",
+                        title = "Local title",
+                        body = "Local body",
+                        syncStatus = SyncStatus.Conflict,
+                        pendingOperation = PendingOperation.Update,
+                        conflictTitle = "Remote title",
+                        conflictBody = "Remote body",
+                    ),
+                ),
+            ),
+        )
+
+        viewModel.onEvent(NotesUiEvent.MergeBothConflict(1L))
+
+        val note = viewModel.uiState.value.notes.first()
+        assertTrue(note.title.contains("Local title"))
+        assertTrue(note.title.contains("Remote title"))
+        assertTrue(note.body.contains("Local body"))
+        assertTrue(note.body.contains("Remote body"))
+        assertEquals(SyncStatus.PendingUpdate, note.syncStatus)
+        assertEquals(PendingOperation.Update, note.pendingOperation)
+        assertEquals(null, note.conflictTitle)
+    }
+
+    @Test
     fun saveRemoteNote_updatesRemoteCopyAndShowsDemoMessage() = runTest {
         val viewModel = NotesViewModel(FakeNotesRepository())
         val remoteId = viewModel.uiState.value.remoteNotes.first().remoteId

@@ -174,6 +174,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.notesScreenContent(
                 onDelete = { onEvent(NotesUiEvent.DeleteNote(note.id)) },
                 onKeepLocal = { onEvent(NotesUiEvent.KeepLocalConflict(note.id)) },
                 onUseRemote = { onEvent(NotesUiEvent.UseRemoteConflict(note.id)) },
+                onMergeBoth = { onEvent(NotesUiEvent.MergeBothConflict(note.id)) },
             )
         }
     }
@@ -818,6 +819,7 @@ private fun NoteListItem(
     onDelete: () -> Unit,
     onKeepLocal: () -> Unit,
     onUseRemote: () -> Unit,
+    onMergeBoth: () -> Unit,
 ) {
     Card(
         onClick = onClick,
@@ -891,11 +893,23 @@ private fun NoteListItem(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = onKeepLocal) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = onKeepLocal,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
                                 Text("Keep local")
                             }
-                            Button(onClick = onUseRemote) {
+                            OutlinedButton(
+                                onClick = onMergeBoth,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Merge both")
+                            }
+                            Button(
+                                onClick = onUseRemote,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
                                 Text("Use remote")
                             }
                         }

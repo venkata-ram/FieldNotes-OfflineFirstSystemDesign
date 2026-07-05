@@ -136,6 +136,15 @@ class FakeNotesRepository(
                             conflictTitle = null,
                             conflictBody = null,
                         )
+
+                        ConflictResolution.MergeBoth -> note.copy(
+                            title = mergeText(note.title, note.conflictTitle, "title"),
+                            body = mergeText(note.body, note.conflictBody, "body"),
+                            syncStatus = SyncStatus.PendingUpdate,
+                            pendingOperation = PendingOperation.Update,
+                            conflictTitle = null,
+                            conflictBody = null,
+                        )
                     }
                 } else {
                     note
@@ -169,5 +178,19 @@ class FakeNotesRepository(
         syncLogFlow.update { entries ->
             (listOf(message) + entries).take(20)
         }
+    }
+
+    private fun mergeText(local: String, remote: String?, label: String): String {
+        val cleanRemote = remote.orEmpty()
+        if (cleanRemote.isBlank() || cleanRemote == local) return local
+        if (local.isBlank()) return cleanRemote
+
+        return """
+            Local $label:
+            $local
+
+            Remote $label:
+            $cleanRemote
+        """.trimIndent()
     }
 }

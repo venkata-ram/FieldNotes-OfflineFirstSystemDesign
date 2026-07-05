@@ -53,6 +53,7 @@ class NotesViewModel(
             is NotesUiEvent.DeleteNote -> deleteNote(event.noteId)
             is NotesUiEvent.KeepLocalConflict -> resolveConflict(event.noteId, ConflictResolution.KeepLocal)
             is NotesUiEvent.UseRemoteConflict -> resolveConflict(event.noteId, ConflictResolution.UseRemote)
+            is NotesUiEvent.MergeBothConflict -> resolveConflict(event.noteId, ConflictResolution.MergeBoth)
             is NotesUiEvent.EditRemoteNote -> startEditingRemote(event.remoteId)
             is NotesUiEvent.RemoteTitleChanged -> updateRemoteTitle(event.title)
             is NotesUiEvent.RemoteBodyChanged -> updateRemoteBody(event.body)
@@ -184,7 +185,7 @@ class NotesViewModel(
     private fun resolveConflict(noteId: Long, resolution: ConflictResolution) {
         viewModelScope.launch {
             notesRepository.resolveConflict(noteId, resolution)
-            if (resolution == ConflictResolution.KeepLocal) {
+            if (resolution == ConflictResolution.KeepLocal || resolution == ConflictResolution.MergeBoth) {
                 scheduleBackgroundSyncIfEnabled()
             }
         }
