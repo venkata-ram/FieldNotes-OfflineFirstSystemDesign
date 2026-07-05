@@ -72,6 +72,16 @@ Main idea:
 - `data` implements storage, fake remote, connectivity, and sync.
 - `di` wires dependencies with Hilt.
 
+## Screenshots
+
+<p>
+  <img src="docs/assets/screenshots/ss-1.png" width="180" alt="Offline-first demo screenshot 1" />
+  <img src="docs/assets/screenshots/ss-2.png" width="180" alt="Offline-first demo screenshot 2" />
+  <img src="docs/assets/screenshots/ss-3.png" width="180" alt="Offline-first demo screenshot 3" />
+  <img src="docs/assets/screenshots/ss-4.png" width="180" alt="Offline-first demo screenshot 4" />
+  <img src="docs/assets/screenshots/ss-5.png" width="180" alt="Offline-first demo screenshot 5" />
+</p>
+
 ## Demo Flow
 
 1. Open `Notes` and tap `Create local note` or the `+` floating action button.
