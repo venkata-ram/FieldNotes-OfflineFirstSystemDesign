@@ -28,21 +28,57 @@ The app is a small Field Notes tool built with Kotlin, Jetpack Compose, Room, Fl
 ## Architecture
 
 ```mermaid
-flowchart TD
-    UI["Compose UI"] --> VM["NotesViewModel"]
-    Hilt["Hilt DI"] --> VM
-    Hilt --> Repo
-    Hilt --> Work
-    VM --> Repo["NotesRepository"]
-    Repo --> DB["Room Database"]
-    Repo --> API["FakeNotesApi"]
-    Work["WorkManager"] --> Repo
-    Conn["ConnectivityObserver"] --> UI
-    Repo --> Mutex["sync Mutex"]
-    Mutex --> Repo
-    DB --> Repo
-    Repo --> VM
-    VM --> UI
+flowchart TB
+    User["User"]
+
+    subgraph UI_LAYER["UI layer"]
+        Screen["Compose screens<br/>Notes, Remote, Sync, Learn"]
+        VM["NotesViewModel<br/>UI state + events"]
+        Connectivity["ConnectivityObserver<br/>online/offline hint"]
+    end
+
+    subgraph DOMAIN_LAYER["Domain boundary"]
+        Repo["NotesRepository<br/>offline-first API"]
+        Lock["sync Mutex<br/>one sync at a time"]
+    end
+
+    subgraph DATA_LAYER["Data layer"]
+        Room["Room database<br/>local source of truth"]
+        Api["FakeNotesApi<br/>remote demo source"]
+    end
+
+    subgraph BACKGROUND_LAYER["Background sync"]
+        Scheduler["SyncScheduler"]
+        Work["WorkManager<br/>one-time + network constraint"]
+        Worker["NotesSyncWorker"]
+    end
+
+    subgraph DI_LAYER["Dependency injection"]
+        Hilt["Hilt modules<br/>create and wire dependencies"]
+    end
+
+    User --> Screen
+    Connectivity -->|network status| Screen
+    Screen -->|NotesUiEvent| VM
+    VM -->|save/edit/delete/resolve/sync| Repo
+    Repo --> Lock
+    Lock --> Repo
+    Repo -->|read/write local state| Room
+    Repo -->|push/pull sync| Api
+    Room -->|Flow emits notes| Repo
+    Repo -->|Flow emits state| VM
+    VM -->|NotesUiState| Screen
+
+    VM -->|auto sync enabled| Scheduler
+    Scheduler --> Work
+    Work -->|runs when connected| Worker
+    Worker --> Repo
+
+    Hilt -.-> VM
+    Hilt -.-> Repo
+    Hilt -.-> Scheduler
+    Hilt -.-> Worker
+    Hilt -.-> Connectivity
 ```
 
 The key rule is simple:
