@@ -60,6 +60,18 @@ class OfflineFirstBehaviorTest {
     }
 
     @Test
+    fun syncLog_recordsLocalWriteAndSync() = runTest {
+        val repository = FakeNotesRepository(initialNotes = emptyList())
+
+        repository.createNote("Logged note", "Observe me")
+        repository.syncNow()
+
+        val entries = repository.syncLog.first()
+        assertTrue(entries.any { it.contains("Created fake local note") })
+        assertTrue(entries.any { it.contains("Fake sync pushed") })
+    }
+
+    @Test
     fun deleteNote_removesLocalVisibleNote() = runTest {
         val repository = FakeNotesRepository()
         val noteId = repository.notes.first().first().id

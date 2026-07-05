@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface NotesRepository {
     val notes: Flow<List<FieldNote>>
+    val syncLog: Flow<List<String>>
 
     suspend fun seedStarterNoteIfEmpty()
     suspend fun createNote(title: String, body: String)

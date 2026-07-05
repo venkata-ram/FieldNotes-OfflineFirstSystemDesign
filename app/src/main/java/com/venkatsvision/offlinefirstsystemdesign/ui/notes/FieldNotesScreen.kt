@@ -96,6 +96,10 @@ fun FieldNotesScreen(
                 )
             }
 
+            item {
+                SyncLogPanel(entries = uiState.syncLog)
+            }
+
             if (uiState.notes.isEmpty()) {
                 item {
                     EmptyNotesState()
@@ -203,6 +207,33 @@ private fun NoteEditor(
                 Button(onClick = onSave) {
                     Text(if (isEditing) "Update local note" else "Save local note")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SyncLogPanel(entries: List<String>) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = "Debug sync log",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            entries.take(5).forEach { entry ->
+                Text(
+                    text = entry,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

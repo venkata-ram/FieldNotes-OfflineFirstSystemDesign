@@ -439,6 +439,11 @@ Learning topics:
 - Debugging offline systems.
 - Logs vs user-facing status.
 
+Status:
+
+- Implemented in-app rolling sync debug log.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M15: Final Polish And Architecture Review
 
 Learning goal:

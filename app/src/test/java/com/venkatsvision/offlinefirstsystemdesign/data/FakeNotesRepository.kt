@@ -8,6 +8,7 @@ import com.venkatsvision.offlinefirstsystemdesign.domain.SyncResult
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class FakeNotesRepository(
@@ -24,8 +25,10 @@ class FakeNotesRepository(
 ) : NotesRepository {
     private var nextId = initialNotes.maxOfOrNull { it.id + 1 } ?: 1L
     private val notesFlow = MutableStateFlow(initialNotes)
+    private val syncLogFlow = MutableStateFlow(listOf("Fake sync log ready"))
 
     override val notes: Flow<List<FieldNote>> = notesFlow
+    override val syncLog: Flow<List<String>> = syncLogFlow.asStateFlow()
 
     override suspend fun seedStarterNoteIfEmpty() {
         if (notesFlow.value.isNotEmpty()) return
@@ -55,6 +58,7 @@ class FakeNotesRepository(
                 ),
             ) + notes
         }
+        log("Created fake local note: $title")
     }
 
     override suspend fun updateNote(noteId: Long, title: String, body: String) {
@@ -80,12 +84,14 @@ class FakeNotesRepository(
                 }
             }
         }
+        log("Updated fake local note: $title")
     }
 
     override suspend fun deleteNote(noteId: Long) {
         notesFlow.update { notes ->
             notes.filterNot { it.id == noteId }
         }
+        log("Deleted fake local note $noteId")
     }
 
     override suspend fun simulateRemoteEdit(noteId: Long) = Unit
@@ -116,6 +122,7 @@ class FakeNotesRepository(
                 }
             }
         }
+        log("Resolved fake conflict for note $noteId")
     }
 
     override suspend fun syncNow(): SyncResult {
@@ -129,6 +136,13 @@ class FakeNotesRepository(
                 )
             }
         }
+        log("Fake sync pushed $pendingCount note(s)")
         return SyncResult(pushed = pendingCount, pulled = 0, failed = 0)
+    }
+
+    private fun log(message: String) {
+        syncLogFlow.update { entries ->
+            (listOf(message) + entries).take(20)
+        }
     }
 }

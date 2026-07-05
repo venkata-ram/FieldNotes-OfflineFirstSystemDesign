@@ -29,6 +29,13 @@ class NotesViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            notesRepository.syncLog.collect { syncLog ->
+                _uiState.update { current ->
+                    current.copy(syncLog = syncLog)
+                }
+            }
+        }
     }
 
     fun onEvent(event: NotesUiEvent) {

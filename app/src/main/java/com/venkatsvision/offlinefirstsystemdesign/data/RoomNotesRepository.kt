@@ -11,7 +11,10 @@ import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncResult
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 
 class RoomNotesRepository(
     private val noteDao: NoteDao,
@@ -22,6 +25,8 @@ class RoomNotesRepository(
         noteDao.observeNotes().map { entities ->
             entities.map { it.toDomain() }
         }
+    private val _syncLog = MutableStateFlow(listOf("Debug sync log ready"))
+    override val syncLog: Flow<List<String>> = _syncLog.asStateFlow()
 
     override suspend fun seedStarterNoteIfEmpty() {
         if (noteDao.countNotes() > 0) return
@@ -35,6 +40,7 @@ class RoomNotesRepository(
                 updatedAtMillis = clock(),
             ),
         )
+        log("Seeded starter note in Room")
     }
 
     override suspend fun createNote(title: String, body: String) {
@@ -47,6 +53,7 @@ class RoomNotesRepository(
                 updatedAtMillis = clock(),
             ),
         )
+        log("Saved local create: $title")
     }
 
     override suspend fun updateNote(noteId: Long, title: String, body: String) {
@@ -70,6 +77,7 @@ class RoomNotesRepository(
                 updatedAtMillis = clock(),
             ),
         )
+        log("Saved local update: $title")
     }
 
     override suspend fun simulateRemoteEdit(noteId: Long) {
@@ -81,6 +89,7 @@ class RoomNotesRepository(
             body = "${existing.body}\nRemote edit created for conflict practice.",
             updatedAtMillis = clock() + 10_000,
         )
+        log("Simulated remote edit for note $noteId")
     }
 
     override suspend fun resolveConflict(noteId: Long, resolution: ConflictResolution) {
@@ -110,12 +119,14 @@ class RoomNotesRepository(
         }
 
         noteDao.update(resolved)
+        log("Resolved conflict for note $noteId with $resolution")
     }
 
     override suspend fun deleteNote(noteId: Long) {
         val existing = noteDao.getNote(noteId) ?: return
         if (existing.remoteId == null) {
             noteDao.hardDelete(noteId)
+            log("Hard-deleted never-synced note $noteId")
             return
         }
 
@@ -127,9 +138,11 @@ class RoomNotesRepository(
                 updatedAtMillis = clock(),
             ),
         )
+        log("Created delete tombstone for note $noteId")
     }
 
     override suspend fun syncNow(): SyncResult {
+        log("Sync started")
         var pushed = 0
         var failed = 0
 
@@ -147,6 +160,7 @@ class RoomNotesRepository(
                     PendingOperation.Delete -> {
                         notesApi.deleteNote(note.remoteId ?: continue)
                         noteDao.hardDelete(note.localId)
+                        log("Pushed delete for local note ${note.localId}")
                         pushed += 1
                         null
                     }
@@ -156,15 +170,18 @@ class RoomNotesRepository(
 
                 if (remote != null) {
                     noteDao.update(note.syncedWith(remote))
+                    log("Pushed ${note.pendingOperation} for local note ${note.localId}")
                     pushed += 1
                 }
             } catch (_: IllegalStateException) {
                 noteDao.update(note.copy(syncStatus = SyncStatus.Failed.name))
+                log("Sync failed for local note ${note.localId}")
                 failed += 1
             }
         }
 
         val pulled = pullRemoteNotes()
+        log("Sync finished: pushed $pushed, pulled $pulled, failed $failed")
         return SyncResult(pushed = pushed, pulled = pulled, failed = failed)
     }
 
@@ -174,13 +191,16 @@ class RoomNotesRepository(
             val local = noteDao.getNoteByRemoteId(remote.remoteId)
             if (local == null) {
                 noteDao.insert(remote.toEntity())
+                log("Pulled new remote note ${remote.remoteId}")
                 pulled += 1
             } else if (remote.updatedAtMillis > local.updatedAtMillis) {
                 if (local.pendingOperation == PendingOperation.None.name) {
                     noteDao.update(local.updatedFrom(remote))
+                    log("Pulled update for remote note ${remote.remoteId}")
                     pulled += 1
                 } else {
                     noteDao.update(local.conflictedWith(remote))
+                    log("Detected conflict for remote note ${remote.remoteId}")
                 }
             }
         }
@@ -192,6 +212,7 @@ class RoomNotesRepository(
         val remoteBeforePush = notesApi.getNotes().firstOrNull { it.remoteId == remoteId }
         if (remoteBeforePush != null && remoteBeforePush.updatedAtMillis > local.updatedAtMillis) {
             noteDao.update(local.conflictedWith(remoteBeforePush))
+            log("Blocked push because remote note $remoteId has a newer version")
             return null
         }
         return notesApi.updateNote(
@@ -250,4 +271,10 @@ class RoomNotesRepository(
         defaultValue: T,
     ): T =
         enumValues<T>().firstOrNull { it.name == value } ?: defaultValue
+
+    private fun log(message: String) {
+        _syncLog.update { entries ->
+            (listOf(message) + entries).take(20)
+        }
+    }
 }

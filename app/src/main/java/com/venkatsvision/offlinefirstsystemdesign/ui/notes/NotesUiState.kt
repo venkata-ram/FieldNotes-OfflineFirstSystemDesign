@@ -9,6 +9,7 @@ data class NotesUiState(
     val editorBody: String = "",
     val isSyncing: Boolean = false,
     val lastSyncMessage: String = "Not synced in this session",
+    val syncLog: List<String> = emptyList(),
 ) {
     val isEditing: Boolean
         get() = editingNoteId != null
