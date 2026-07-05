@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.venkatsvision.offlinefirstsystemdesign.domain.ConflictResolution
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
+import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
+import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -192,15 +194,25 @@ class NotesViewModel(
     }
 
     private fun setAutoBackgroundSync(enabled: Boolean) {
+        val hasSyncablePendingChanges = _uiState.value.notes.any { note ->
+            note.pendingOperation != PendingOperation.None && note.syncStatus != SyncStatus.Conflict
+        }
         _uiState.update { current ->
             current.copy(
                 autoBackgroundSyncEnabled = enabled,
                 lastSyncMessage = if (enabled) {
-                    "Auto background sync enabled."
+                    if (hasSyncablePendingChanges) {
+                        "Auto background sync enabled. Pending changes queued."
+                    } else {
+                        "Auto background sync enabled."
+                    }
                 } else {
                     "Auto background sync paused for manual demo control."
                 },
             )
+        }
+        if (enabled && hasSyncablePendingChanges) {
+            scheduleBackgroundSync()
         }
     }
 

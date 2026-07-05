@@ -132,6 +132,25 @@ class NotesViewModelTest {
     }
 
     @Test
+    fun enablingAutoSync_withExistingPendingNote_schedulesBackgroundSync() = runTest {
+        var scheduleCount = 0
+        val viewModel = NotesViewModel(
+            notesRepository = FakeNotesRepository(),
+            scheduleBackgroundSync = { scheduleCount += 1 },
+        )
+
+        viewModel.onEvent(NotesUiEvent.TitleChanged("Created before auto sync"))
+        viewModel.onEvent(NotesUiEvent.SaveNote)
+        viewModel.onEvent(NotesUiEvent.AutoBackgroundSyncChanged(enabled = true))
+
+        assertEquals(1, scheduleCount)
+        assertEquals(
+            "Auto background sync enabled. Pending changes queued.",
+            viewModel.uiState.value.lastSyncMessage,
+        )
+    }
+
+    @Test
     fun deleteNote_removesNoteWithoutSchedulingWhenAutoSyncDisabled() = runTest {
         var scheduleCount = 0
         val viewModel = NotesViewModel(
