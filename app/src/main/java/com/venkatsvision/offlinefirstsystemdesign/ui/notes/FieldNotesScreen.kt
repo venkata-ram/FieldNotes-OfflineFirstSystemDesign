@@ -67,6 +67,14 @@ fun FieldNotesScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
+                SyncPanel(
+                    isSyncing = uiState.isSyncing,
+                    lastSyncMessage = uiState.lastSyncMessage,
+                    onSync = { onEvent(NotesUiEvent.SyncNow) },
+                )
+            }
+
+            item {
                 NoteEditor(
                     isEditing = uiState.isEditing,
                     title = uiState.editorTitle,
@@ -97,6 +105,41 @@ fun FieldNotesScreen(
                         onClick = { onEvent(NotesUiEvent.EditNote(note.id)) },
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SyncPanel(
+    isSyncing: Boolean,
+    lastSyncMessage: String,
+    onSync: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Manual sync",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = lastSyncMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+            Button(onClick = onSync, enabled = !isSyncing) {
+                Text(if (isSyncing) "Syncing" else "Sync now")
             }
         }
     }

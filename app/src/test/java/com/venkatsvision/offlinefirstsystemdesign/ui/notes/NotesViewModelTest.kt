@@ -67,4 +67,19 @@ class NotesViewModelTest {
         assertTrue(state.editorTitle.isBlank())
         assertTrue(state.editorBody.isBlank())
     }
+
+    @Test
+    fun syncNow_marksPendingNotesSynced() = runTest {
+        val viewModel = NotesViewModel(FakeNotesRepository())
+
+        viewModel.onEvent(NotesUiEvent.TitleChanged("Trail report"))
+        viewModel.onEvent(NotesUiEvent.SaveNote)
+        viewModel.onEvent(NotesUiEvent.SyncNow)
+
+        val state = viewModel.uiState.value
+        assertEquals(SyncStatus.Synced, state.notes.first().syncStatus)
+        assertEquals(PendingOperation.None, state.notes.first().pendingOperation)
+        assertEquals("Sync complete: pushed 1, pulled 0", state.lastSyncMessage)
+        assertFalse(state.isSyncing)
+    }
 }

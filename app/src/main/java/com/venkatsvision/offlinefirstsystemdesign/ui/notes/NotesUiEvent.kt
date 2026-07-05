@@ -6,4 +6,5 @@ sealed interface NotesUiEvent {
     data class EditNote(val noteId: Long) : NotesUiEvent
     data object ClearEditor : NotesUiEvent
     data object SaveNote : NotesUiEvent
+    data object SyncNow : NotesUiEvent
 }

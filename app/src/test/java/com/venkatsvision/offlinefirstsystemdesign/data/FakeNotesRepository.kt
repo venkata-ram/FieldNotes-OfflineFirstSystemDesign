@@ -3,6 +3,7 @@ package com.venkatsvision.offlinefirstsystemdesign.data
 import com.venkatsvision.offlinefirstsystemdesign.domain.FieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
+import com.venkatsvision.offlinefirstsystemdesign.domain.SyncResult
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,5 +76,18 @@ class FakeNotesRepository(
                 }
             }
         }
+    }
+
+    override suspend fun syncNow(): SyncResult {
+        val pendingCount = notesFlow.value.count { it.pendingOperation != PendingOperation.None }
+        notesFlow.update { notes ->
+            notes.map { note ->
+                note.copy(
+                    syncStatus = SyncStatus.Synced,
+                    pendingOperation = PendingOperation.None,
+                )
+            }
+        }
+        return SyncResult(pushed = pendingCount, pulled = 0, failed = 0)
     }
 }

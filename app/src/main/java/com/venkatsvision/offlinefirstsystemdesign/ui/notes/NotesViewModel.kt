@@ -36,6 +36,7 @@ class NotesViewModel(
             is NotesUiEvent.EditNote -> startEditing(event.noteId)
             NotesUiEvent.ClearEditor -> clearEditor()
             NotesUiEvent.SaveNote -> saveNote()
+            NotesUiEvent.SyncNow -> syncNow()
         }
     }
 
@@ -94,5 +95,20 @@ class NotesViewModel(
         }
 
         clearEditor()
+    }
+
+    private fun syncNow() {
+        viewModelScope.launch {
+            _uiState.update { current ->
+                current.copy(isSyncing = true, lastSyncMessage = "Syncing...")
+            }
+            val result = notesRepository.syncNow()
+            _uiState.update { current ->
+                current.copy(
+                    isSyncing = false,
+                    lastSyncMessage = result.message,
+                )
+            }
+        }
     }
 }

@@ -272,6 +272,11 @@ Learning topics:
 - Mapping local IDs to remote IDs.
 - Failure handling.
 
+Status:
+
+- Implemented manual push/pull sync through Room and the fake API.
+- Verified with `./gradlew testDebugUnitTest`.
+
 ### M8: Background Sync With WorkManager
 
 Learning goal:

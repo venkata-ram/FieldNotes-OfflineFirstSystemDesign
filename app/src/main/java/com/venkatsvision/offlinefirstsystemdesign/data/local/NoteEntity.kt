@@ -1,9 +1,15 @@
 package com.venkatsvision.offlinefirstsystemdesign.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "notes")
+@Entity(
+    tableName = "notes",
+    indices = [
+        Index(value = ["remoteId"], unique = true),
+    ],
+)
 data class NoteEntity(
     @PrimaryKey(autoGenerate = true)
     val localId: Long = 0,

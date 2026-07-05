@@ -8,4 +8,5 @@ interface NotesRepository {
     suspend fun seedStarterNoteIfEmpty()
     suspend fun createNote(title: String, body: String)
     suspend fun updateNote(noteId: Long, title: String, body: String)
+    suspend fun syncNow(): SyncResult
 }

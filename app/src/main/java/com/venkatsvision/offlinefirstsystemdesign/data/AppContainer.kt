@@ -28,6 +28,9 @@ object AppContainer {
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 
-        return RoomNotesRepository(database.noteDao())
+        return RoomNotesRepository(
+            noteDao = database.noteDao(),
+            notesApi = fakeNotesApi,
+        )
     }
 }
