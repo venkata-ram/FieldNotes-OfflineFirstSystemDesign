@@ -49,6 +49,74 @@ The key rule is simple:
 
 The app saves first, shows local data immediately, and syncs later when the network is available.
 
+## Component Architecture
+
+The first diagram shows what happens to one note. This diagram shows the main app parts and how they connect.
+
+```mermaid
+flowchart TB
+    subgraph UI["UI layer (Compose)"]
+        Activity["MainActivity"]
+        Route["FieldNotesRoute"]
+        Screen["FieldNotesScreen"]
+        VM["NotesViewModel<br/>(@HiltViewModel)"]
+    end
+
+    subgraph Domain["Domain layer (contracts)"]
+        RepoIface["NotesRepository"]
+        SyncIface["SyncScheduler"]
+        ConnIface["ConnectivityObserver"]
+    end
+
+    subgraph Data["Data layer (implementations)"]
+        Repo["RoomNotesRepository"]
+        Dao["NoteDao"]
+        DB[("AppDatabase (Room / SQLite)")]
+        Api["FakeNotesApi"]
+        FakeApi["InMemoryFakeNotesApi"]
+        Scheduler["NotesSyncScheduler"]
+        Worker["NotesSyncWorker<br/>(@HiltWorker, CoroutineWorker)"]
+        Conn["AndroidConnectivityObserver"]
+    end
+
+    subgraph OS["Android framework"]
+        WM["WorkManager"]
+        CM["ConnectivityManager"]
+    end
+
+    Activity --> Route --> Screen
+    Route --> VM
+    VM -->|"reads notes stream"| RepoIface
+    VM -->|"enqueueOneTimeSync()"| SyncIface
+    Route -->|"reads online status"| ConnIface
+
+    RepoIface -.uses.-> Repo
+    SyncIface -.uses.-> Scheduler
+    ConnIface -.uses.-> Conn
+
+    Repo --> Dao --> DB
+    Repo --> Api
+    Api -.implemented by.-> FakeApi
+
+    Scheduler --> WM
+    WM --> Worker
+    Worker -->|"syncNow()"| RepoIface
+    Conn --> CM
+
+    classDef contract stroke-dasharray: 4 3
+    class RepoIface,SyncIface,ConnIface contract
+```
+
+Hilt connects each interface to the class that implements it.
+
+The UI and ViewModel depend on simple interfaces:
+
+- `NotesRepository`
+- `SyncScheduler`
+- `ConnectivityObserver`
+
+They do not talk directly to Room, WorkManager, or the fake API. This keeps the app easier to test and makes it possible to replace the fake API with a real server later.
+
 ## Package Structure
 
 ```text
@@ -109,6 +177,29 @@ Auto sync is not a timer in this project.
 - When network is available, Android can run the queued sync.
 - If auto sync is turned on while syncable pending notes already exist, the app queues work immediately.
 - Conflict notes are not auto-synced until the user resolves the conflict.
+
+## What's Missing In This Demo
+
+This app is for learning. It shows the main offline-first ideas, but it is still smaller than a real production app.
+
+Not included:
+
+- **Real server calls.** The app uses an in-memory fake API, not Retrofit/Ktor or HTTP.
+- **Persistent fake server.** The fake remote data is lost when the app process restarts.
+- **Deletes from another device.** Local deletes are synced to remote, but remote deletes are not pulled back to local.
+- **Multiple users or devices.** The demo does not show two real devices syncing the same account.
+- **Login and permissions.** There is no authentication, user account, or token handling.
+- **Advanced conflict merging.** Conflicts are resolved at the whole-note level. A real collaborative editor may need field-level merges, operation logs, CRDTs, or OT.
+- **Periodic sync.** Sync runs from a manual tap or one-time WorkManager work. There is no periodic sync, foreground refresh, push notification, or WebSocket trigger.
+- **Large data sets.** The app reads all notes as one list. A real app may need paging.
+- **Encryption.** The Room database is plain SQLite.
+- **Safe schema migrations.** The demo uses destructive migration, which can wipe local data during a schema change.
+- **Production monitoring.** The app has a local debug sync log, but no crash reporting, metrics, or remote logs.
+
+Known remaining gaps:
+
+- The fake API does not support compare-and-swap, ETags, or server-side version checks. Two writers can still race in ways a real backend should prevent.
+- Error handling is simple. A production app would need clearer retry rules and better user-facing failure states.
 
 ## Milestone Docs
 
