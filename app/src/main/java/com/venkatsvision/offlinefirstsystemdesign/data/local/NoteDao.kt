@@ -18,7 +18,7 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE remoteId = :remoteId LIMIT 1")
     suspend fun getNoteByRemoteId(remoteId: String): NoteEntity?
 
-    @Query("SELECT * FROM notes WHERE pendingOperation != 'None' ORDER BY updatedAtMillis ASC")
+    @Query("SELECT * FROM notes WHERE pendingOperation != 'None' AND syncStatus != 'Conflict' ORDER BY updatedAtMillis ASC")
     suspend fun getPendingNotes(): List<NoteEntity>
 
     @Query("DELETE FROM notes WHERE localId = :localId")

@@ -138,7 +138,7 @@ class FakeNotesRepository(
                         )
 
                         ConflictResolution.MergeBoth -> note.copy(
-                            title = mergeText(note.title, note.conflictTitle, "title"),
+                            title = mergeTitle(note.title, note.conflictTitle),
                             body = mergeText(note.body, note.conflictBody, "body"),
                             syncStatus = SyncStatus.PendingUpdate,
                             pendingOperation = PendingOperation.Update,
@@ -178,6 +178,13 @@ class FakeNotesRepository(
         syncLogFlow.update { entries ->
             (listOf(message) + entries).take(20)
         }
+    }
+
+    private fun mergeTitle(local: String, remote: String?): String {
+        val cleanRemote = remote.orEmpty()
+        if (cleanRemote.isBlank() || cleanRemote == local) return local
+        if (local.isBlank()) return cleanRemote
+        return "$local / $cleanRemote"
     }
 
     private fun mergeText(local: String, remote: String?, label: String): String {

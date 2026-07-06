@@ -4,6 +4,7 @@ import com.venkatsvision.offlinefirstsystemdesign.data.local.NoteDao
 import com.venkatsvision.offlinefirstsystemdesign.data.local.NoteEntity
 import com.venkatsvision.offlinefirstsystemdesign.data.remote.FakeNotesApi
 import com.venkatsvision.offlinefirstsystemdesign.data.remote.RemoteNote
+import com.venkatsvision.offlinefirstsystemdesign.domain.ConflictResolution
 import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
 import kotlinx.coroutines.async
@@ -82,6 +83,103 @@ class RoomNotesRepositoryConcurrencyTest {
         assertEquals(SyncStatus.Failed.name, pending.syncStatus)
         assertEquals(PendingOperation.Create.name, pending.pendingOperation)
     }
+
+    @Test
+    fun updateNote_whenNoteHasConflict_clearsConflictAndQueuesLocalVersion() = runTest {
+        val noteDao = InMemoryNoteDao(conflictedNote())
+        val repository = RoomNotesRepository(
+            noteDao = noteDao,
+            notesApi = CountingFakeNotesApi(),
+            clock = { 5000L },
+        )
+
+        repository.updateNote(1L, "Edited local title", "Edited local body")
+
+        val note = noteDao.notes.value.single()
+        assertEquals("Edited local title", note.title)
+        assertEquals("Edited local body", note.body)
+        assertEquals(SyncStatus.PendingUpdate.name, note.syncStatus)
+        assertEquals(PendingOperation.Update.name, note.pendingOperation)
+        assertEquals(null, note.conflictTitle)
+        assertEquals(null, note.conflictBody)
+        assertEquals(null, note.conflictUpdatedAtMillis)
+    }
+
+    @Test
+    fun deleteNote_whenNoteHasConflict_keepsBothVersionsUntilResolved() = runTest {
+        val noteDao = InMemoryNoteDao(conflictedNote())
+        val notesApi = CountingFakeNotesApi(
+            initialNotes = listOf(
+                RemoteNote("remote-1", "Remote title", "Remote body", 2000L),
+            ),
+        )
+        val repository = RoomNotesRepository(
+            noteDao = noteDao,
+            notesApi = notesApi,
+            clock = { 5000L },
+        )
+
+        repository.deleteNote(1L)
+        repository.syncNow()
+
+        val note = noteDao.notes.value.single()
+        assertEquals(SyncStatus.Conflict.name, note.syncStatus)
+        assertEquals(PendingOperation.Update.name, note.pendingOperation)
+        assertEquals(false, note.isDeleted)
+        assertEquals(0, notesApi.deleteCount)
+    }
+
+    @Test
+    fun syncNow_whenPendingOperationIsStillConflict_doesNotPushIt() = runTest {
+        val noteDao = InMemoryNoteDao(conflictedNote())
+        val notesApi = CountingFakeNotesApi(
+            initialNotes = listOf(
+                RemoteNote("remote-1", "Remote title", "Remote body", 2000L),
+            ),
+        )
+        val repository = RoomNotesRepository(
+            noteDao = noteDao,
+            notesApi = notesApi,
+            clock = { 5000L },
+        )
+
+        val result = repository.syncNow()
+
+        val note = noteDao.notes.value.single()
+        assertEquals(0, result.pushed)
+        assertEquals(0, notesApi.updateCount)
+        assertEquals(SyncStatus.Conflict.name, note.syncStatus)
+        assertEquals("Remote title", note.conflictTitle)
+    }
+
+    @Test
+    fun resolveConflict_mergeBoth_keepsTitleSingleLineAndMergesBodyWithLabels() = runTest {
+        val noteDao = InMemoryNoteDao(conflictedNote())
+        val repository = RoomNotesRepository(
+            noteDao = noteDao,
+            notesApi = CountingFakeNotesApi(),
+            clock = { 5000L },
+        )
+
+        repository.resolveConflict(1L, ConflictResolution.MergeBoth)
+
+        val note = noteDao.notes.value.single()
+        assertEquals("Local title / Remote title", note.title)
+        assertEquals(false, note.title.contains("\n"))
+        assertEquals(
+            """
+                Local body:
+                Local body
+
+                Remote body:
+                Remote body
+            """.trimIndent(),
+            note.body,
+        )
+        assertEquals(SyncStatus.PendingUpdate.name, note.syncStatus)
+        assertEquals(PendingOperation.Update.name, note.pendingOperation)
+        assertEquals(null, note.conflictTitle)
+    }
 }
 
 private class InMemoryNoteDao(
@@ -100,7 +198,10 @@ private class InMemoryNoteDao(
         notes.value.firstOrNull { it.remoteId == remoteId }
 
     override suspend fun getPendingNotes(): List<NoteEntity> =
-        notes.value.filter { it.pendingOperation != PendingOperation.None.name }
+        notes.value.filter {
+            it.pendingOperation != PendingOperation.None.name &&
+                it.syncStatus != SyncStatus.Conflict.name
+        }
 
     override suspend fun hardDelete(localId: Long) {
         notes.value = notes.value.filterNot { it.localId == localId }
@@ -134,11 +235,21 @@ private class InMemoryNoteDao(
     }
 }
 
-private class CountingFakeNotesApi : FakeNotesApi {
-    private val remoteStore = linkedMapOf<String, RemoteNote>()
+private class CountingFakeNotesApi(
+    initialNotes: List<RemoteNote> = emptyList(),
+) : FakeNotesApi {
+    private val remoteStore = initialNotes.associateByTo(linkedMapOf()) { it.remoteId }
     private val notesFlow = MutableStateFlow(emptyList<RemoteNote>())
     var createCount = 0
         private set
+    var updateCount = 0
+        private set
+    var deleteCount = 0
+        private set
+
+    init {
+        publishNotes()
+    }
 
     override val notes: Flow<List<RemoteNote>> = notesFlow
 
@@ -169,6 +280,7 @@ private class CountingFakeNotesApi : FakeNotesApi {
         body: String,
         updatedAtMillis: Long,
     ): RemoteNote {
+        updateCount += 1
         val remote = RemoteNote(remoteId, title, body, updatedAtMillis)
         remoteStore[remoteId] = remote
         publishNotes()
@@ -176,6 +288,7 @@ private class CountingFakeNotesApi : FakeNotesApi {
     }
 
     override suspend fun deleteNote(remoteId: String) {
+        deleteCount += 1
         remoteStore.remove(remoteId)
         publishNotes()
     }
@@ -214,3 +327,17 @@ private class FixedCreateIdFakeNotesApi(
 
     override suspend fun deleteNote(remoteId: String) = Unit
 }
+
+private fun conflictedNote(): NoteEntity =
+    NoteEntity(
+        localId = 1L,
+        remoteId = "remote-1",
+        title = "Local title",
+        body = "Local body",
+        syncStatus = SyncStatus.Conflict.name,
+        pendingOperation = PendingOperation.Update.name,
+        conflictTitle = "Remote title",
+        conflictBody = "Remote body",
+        conflictUpdatedAtMillis = 2000L,
+        updatedAtMillis = 1000L,
+    )

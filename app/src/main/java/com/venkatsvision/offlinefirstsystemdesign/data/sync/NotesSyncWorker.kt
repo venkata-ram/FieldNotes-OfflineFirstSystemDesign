@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import com.venkatsvision.offlinefirstsystemdesign.domain.NotesRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 
 @HiltWorker
 class NotesSyncWorker @AssistedInject constructor(
@@ -22,6 +23,8 @@ class NotesSyncWorker @AssistedInject constructor(
             } else {
                 Result.retry()
             }
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (_: Exception) {
             Result.retry()
         }

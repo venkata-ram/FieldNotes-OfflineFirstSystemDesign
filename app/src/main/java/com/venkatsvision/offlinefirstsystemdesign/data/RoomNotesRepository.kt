@@ -11,13 +11,13 @@ import com.venkatsvision.offlinefirstsystemdesign.domain.PendingOperation
 import com.venkatsvision.offlinefirstsystemdesign.domain.RemoteFieldNote
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncResult
 import com.venkatsvision.offlinefirstsystemdesign.domain.SyncStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 class RoomNotesRepository(
     private val noteDao: NoteDao,
@@ -72,8 +72,6 @@ class RoomNotesRepository(
                 body = body,
                 syncStatus = if (existing.remoteId == null) {
                     SyncStatus.PendingCreate.name
-                } else if (existing.syncStatus == SyncStatus.Conflict.name) {
-                    SyncStatus.Conflict.name
                 } else {
                     SyncStatus.PendingUpdate.name
                 },
@@ -82,6 +80,9 @@ class RoomNotesRepository(
                 } else {
                     PendingOperation.Update.name
                 },
+                conflictTitle = null,
+                conflictBody = null,
+                conflictUpdatedAtMillis = null,
                 updatedAtMillis = clock(),
             ),
         )
@@ -124,10 +125,9 @@ class RoomNotesRepository(
             )
 
             ConflictResolution.MergeBoth -> existing.copy(
-                title = mergeText(
+                title = mergeTitle(
                     local = existing.title,
                     remote = existing.conflictTitle,
-                    label = "title",
                 ),
                 body = mergeText(
                     local = existing.body,
@@ -149,6 +149,10 @@ class RoomNotesRepository(
 
     override suspend fun deleteNote(noteId: Long) {
         val existing = noteDao.getNote(noteId) ?: return
+        if (existing.syncStatus == SyncStatus.Conflict.name) {
+            log("Resolve conflict before deleting note $noteId")
+            return
+        }
         if (existing.remoteId == null) {
             noteDao.hardDelete(noteId)
             log("Hard-deleted never-synced note $noteId")
@@ -167,13 +171,15 @@ class RoomNotesRepository(
     }
 
     override suspend fun syncNow(): SyncResult {
-        if (syncMutex.isLocked) {
+        if (!syncMutex.tryLock()) {
             log("Sync skipped because another sync is already running")
             return SyncResult(pushed = 0, pulled = 0, failed = 0)
         }
 
-        return syncMutex.withLock {
+        return try {
             syncNowLocked()
+        } finally {
+            syncMutex.unlock()
         }
     }
 
@@ -209,6 +215,8 @@ class RoomNotesRepository(
                     log("Pushed ${note.pendingOperation} for local note ${note.localId}")
                     pushed += 1
                 }
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (_: IllegalStateException) {
                 noteDao.update(note.copy(syncStatus = SyncStatus.Failed.name))
                 log("Sync failed for local note ${note.localId}")
@@ -314,6 +322,13 @@ class RoomNotesRepository(
         defaultValue: T,
     ): T =
         enumValues<T>().firstOrNull { it.name == value } ?: defaultValue
+
+    private fun mergeTitle(local: String, remote: String?): String {
+        val cleanRemote = remote.orEmpty()
+        if (cleanRemote.isBlank() || cleanRemote == local) return local
+        if (local.isBlank()) return cleanRemote
+        return "$local / $cleanRemote"
+    }
 
     private fun log(message: String) {
         _syncLog.update { entries ->
