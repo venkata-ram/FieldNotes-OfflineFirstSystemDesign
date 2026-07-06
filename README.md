@@ -49,6 +49,26 @@ The key rule is simple:
 
 The app saves first, shows local data immediately, and syncs later when the network is available.
 
+## App Layers
+
+```mermaid
+flowchart TB
+    UI["UI layer<br/>Compose + ViewModel"]
+    Domain["Domain layer<br/>Models + interfaces"]
+    Data["Data layer<br/>Repository"]
+    Local["Local storage<br/>Room database"]
+    Remote["Remote source<br/>Fake API"]
+    Sync["Background sync<br/>WorkManager"]
+
+    UI --> Domain
+    Domain --> Data
+    Data --> Local
+    Data --> Remote
+    Sync --> Data
+```
+
+The UI sends user actions to the ViewModel. The ViewModel uses domain interfaces. The data layer saves notes in Room, talks to the fake API, and syncs changes in the background.
+
 ## Package Structure
 
 ```text
